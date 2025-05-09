@@ -44,7 +44,12 @@ function Products() {
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [search, setSearch] = useState('')
   const [categories, setCategories] = useState([])
-  const [unitTypes, setUnitTypes] = useState([])
+  const [unitTypes, setUnitTypes] = useState([
+    { id: 1, name: 'Unidad' },
+    { id: 2, name: 'Kg' },
+    { id: 3, name: 'Litro' },
+    { id: 4, name: 'Paquete' }
+  ])
   const [branches, setBranches] = useState([])
   const [filters, setFilters] = useState({
     category_id: '',
@@ -72,45 +77,81 @@ function Products() {
     }
 
     checkAuthAndLoad()
-  }, [navigate])
+  }, [navigate, page, rowsPerPage, filters])
 
-  const fetchProducts = async (params = {}) => {
+  const fetchProducts = async () => {
     try {
-      setLoading(true)
-      setError(null)
+      setLoading(true);
+      setError(null);
       
-      const data = await productService.getProducts({
+      const response = await productService.getProducts({
         skip: page * rowsPerPage,
         limit: rowsPerPage,
-        ...filters,
-        ...params
-      })
+        search: search || undefined,
+        category_id: filters.category_id || undefined,
+        unit_type: filters.unit_type || undefined,
+        branch_id: filters.branch_id || undefined
+      });
       
-      setProducts(data)
+      setProducts(response.items);
+      setTotalProducts(response.total);
     } catch (error) {
-      console.error('Error fetching products:', error)
-      setError('Error al cargar productos. Intente nuevamente.')
+      console.error('Error fetching products:', error);
+      // Mostrar mensaje de error más descriptivo
+      setError(error.message || 'Error al cargar productos. Por favor, intente más tarde.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
+  
+  // Usar useEffect con dependencias correctas
+  useEffect(() => {
+    fetchProducts();
+  }, [page, rowsPerPage, search, filters.category_id, filters.unit_type, filters.branch_id]);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchProducts();
+    }, 500);
+  
+    return () => clearTimeout(timer);
+  }, [page, rowsPerPage, search, filters]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      fetchProducts()
+    }, 500) // Debounce para la búsqueda
+  
+    return () => clearTimeout(timer)
+  }, [page, rowsPerPage, search, filters])
 
   const fetchFilterOptions = async () => {
     try {
-      const [categoriesData, unitTypesData, branchesData] = await Promise.all([
-        productService.getCategories(),
-        productService.getUnitTypes(),
-        productService.getBranches()
+      const [branchesData, categoriesData] = await Promise.all([
+        productService.getBranches(),
+        productService.getCategories()
       ])
       
-      setCategories(categoriesData)
-      setUnitTypes(unitTypesData)
+      console.log('Categorías recibidas:', categoriesData) // Para depuración
+      console.log('Sucursales recibidas:', branchesData) // Para depuración
+      
+      // Asegurar el formato correcto de las categorías
+      const formattedCategories = Array.isArray(categoriesData) 
+        ? categoriesData.map(cat => ({
+            id: cat.id || cat.category_id,
+            name: cat.name || cat.category_name
+          }))
+        : []
+      
+      setCategories(formattedCategories)
       setBranches(branchesData)
     } catch (err) {
       console.error('Error al obtener opciones de filtrado:', err)
+      setError('Error al cargar opciones de filtrado')
     }
   }
 
+  // Resto de tus handlers permanecen igual...
   const handleChangePage = (event, newPage) => {
     setPage(newPage)
   }
@@ -121,8 +162,9 @@ function Products() {
   }
 
   const handleSearchChange = (event) => {
-    setSearch(event.target.value)
-  }
+  setSearch(event.target.value)
+  setPage(0) // Resetear a la primera página al buscar
+}
 
   const handleFilterChange = (event) => {
     const { name, value } = event.target
@@ -156,7 +198,7 @@ function Products() {
       setLoading(true)
       await productService.deleteProduct(confirmDialog.productId)
       setSuccess('Producto eliminado correctamente')
-      fetchProducts() // Recargar la lista
+      fetchProducts()
     } catch (err) {
       console.error('Error al eliminar producto:', err)
       setError(err.message || 'Error al eliminar el producto. Por favor, intente de nuevo.')
@@ -178,19 +220,6 @@ function Products() {
     if (!product.inventory_items || product.inventory_items.length === 0) return 0
     return product.inventory_items.reduce((total, item) => total + item.quantity, 0)
   }
-
-  useEffect(() => {
-    const fetchBranches = async () => {
-      try {
-        const branchesData = await productService.getBranches()
-        setBranches(branchesData)
-      } catch (error) {
-        console.error('Error fetching branches:', error)
-      }
-    }
-
-    fetchBranches()
-  }, [])
 
   return (
     <>
@@ -233,6 +262,7 @@ function Products() {
               placeholder="Buscar por nombre..."
               value={search}
               onChange={handleSearchChange}
+              onKeyPress={(e) => e.key === 'Enter' && fetchProducts()}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -253,6 +283,7 @@ function Products() {
               label="Categoría"
               value={filters.category_id}
               onChange={handleFilterChange}
+              disabled={categories.length === 0}
             >
               <MenuItem value="">Todas</MenuItem>
               {categories.map((category) => (
@@ -293,6 +324,7 @@ function Products() {
               label="Sucursal"
               value={filters.branch_id}
               onChange={handleFilterChange}
+              disabled={branches.length === 0}
             >
               <MenuItem value="">Todas</MenuItem>
               {branches.map((branch) => (
@@ -353,7 +385,7 @@ function Products() {
                     const category = categories.find(c => c.id === product.category_id)
                     return (
                       <TableRow 
-                        key={product.product_id} 
+                        key={product.product_id || product.id} 
                         sx={{ '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}
                       >
                         <TableCell>{product.barcode}</TableCell>
@@ -385,13 +417,13 @@ function Products() {
                           />
                         </TableCell>
                         <TableCell align="right">
-                          ${product.price.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                          ${product.price?.toLocaleString('es-MX', { minimumFractionDigits: 2 }) || '0.00'}
                         </TableCell>
                         <TableCell align="right">
                           <Chip 
-                            label={stock} 
+                            label={product.min_stock || 0} 
                             size="small"
-                            color={stock < (product.min_stock || 5) ? "error" : stock < 20 ? "warning" : "success"}
+                            color={product.min_stock < 5 ? "error" : product.min_stock < 20 ? "warning" : "success"}
                             variant="outlined"
                           />
                         </TableCell>
@@ -401,7 +433,7 @@ function Products() {
                             <IconButton 
                               size="small" 
                               color="primary"
-                              onClick={() => handleEditProduct(product.product_id)}
+                              onClick={() => handleEditProduct(product.product_id || product.id)}
                             >
                               <EditIcon fontSize="small" />
                             </IconButton>
@@ -410,7 +442,7 @@ function Products() {
                             <IconButton 
                               size="small" 
                               color="error"
-                              onClick={() => handleDeleteConfirm(product.product_id)}
+                              onClick={() => handleDeleteConfirm(product.product_id || product.id)}
                             >
                               <DeleteIcon fontSize="small" />
                             </IconButton>
