@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import {
   Button,
   Paper,
@@ -57,6 +58,24 @@ function Products() {
     message: '',
     productId: null
   })
+
+  const location = useLocation();
+  const [successAlert, setSuccessAlert] = useState({
+    show: false,
+    message: ''
+  });
+
+  useEffect(() => {
+    if (location.state?.showSuccess) {
+      setSuccessAlert({
+        show: true,
+        message: location.state.successMessage
+      });
+      
+      // Limpiar el estado de navegación para no mostrar el mensaje al recargar
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
   
   const navigate = useNavigate()
 
@@ -237,12 +256,12 @@ function Products() {
         />
       )}
       
-      {success && (
-        <AlertMessage 
-          severity="success" 
-          message={success} 
-          onClose={() => setSuccess(null)} 
-          autoHideDuration={5000}
+      {successAlert.show && (
+        <AlertMessage
+          severity="success"
+          message={successAlert.message}
+          autoHideDuration={3000}
+          onClose={() => setSuccessAlert({ show: false, message: '' })}
         />
       )}
       

@@ -56,23 +56,56 @@ const productService = {
 
   // Mantener los demás métodos igual...
   getProduct: async (id) => {
-    const response = await api.get(`/products/${id}`)
-    return response.data
+    const response = await api.get(`/products/${id}`);
+    const product = response.data;
+    
+    // Asegurar que inventory_items esté en el formato correcto
+    return {
+      ...product,
+      inventory_items: product.inventory_items || []
+    };
   },
+
 
   createProduct: async (productData) => {
-    const response = await api.post('/products', productData)
-    return response.data
-  },
+  const response = await api.post('/products', {
+    ...productData,
+    // Convertir las cantidades a números
+    inventory_assignments: productData.inventory_assignments?.map(ia => ({
+      branch_id: ia.branch_id,
+      quantity: parseFloat(ia.quantity) || 0
+    }))
+  })
+  return response.data
+},
 
   updateProduct: async (id, productData) => {
-    const response = await api.put(`/products/${id}`, productData)
-    return response.data
+    const response = await api.put(`/products/${id}`, {
+      ...productData,
+      inventory_assignments: productData.inventory_assignments?.map(ia => ({
+        branch_id: ia.branch_id,
+        quantity: parseFloat(ia.quantity) || 0
+      }))
+    });
+    return response.data;
   },
 
   deleteProduct: async (id) => {
-    const response = await api.delete(`/products/${id}`)
-    return response.status === 204
+    const response = await api.delete(`/products/${id}`);
+    if (response.status === 204) {
+      return { success: true, message: 'Producto eliminado correctamente' };
+    }
+    throw new Error('Error al eliminar el producto');
+  },
+
+  // Método para obtener el inventario completo de un producto
+  getProductInventory: async (productId) => {
+    const response = await api.get(`/inventory?product_id=${productId}`);
+    return response.data.map(item => ({
+      branch_id: item.branch_id,
+      quantity: item.quantity,
+      inventory_id: item.inventory_id
+    }));
   },
 
   getCategories: async () => {

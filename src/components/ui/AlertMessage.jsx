@@ -1,47 +1,80 @@
-import { Alert, AlertTitle, Collapse, IconButton } from '@mui/material'
-import { Close as CloseIcon } from '@mui/icons-material'
-import { useState, useEffect } from 'react'
+import { Alert, AlertTitle, Snackbar, IconButton, Slide } from '@mui/material';
+import { Close as CloseIcon } from '@mui/icons-material';
+import { forwardRef, useState, useEffect } from 'react';
 
-function AlertMessage({ severity, title, message, autoHideDuration, onClose }) {
-  const [open, setOpen] = useState(true)
+// Animación de deslizamiento para el Snackbar
+const SlideTransition = forwardRef(function Transition(props, ref) {
+  return <Slide direction="left" ref={ref} {...props} />;
+});
+
+function AlertMessage({ 
+  message, 
+  title,
+  autoHideDuration = 6000, 
+  onClose,
+  position = { vertical: 'top', horizontal: 'right' }
+}) {
+  const [open, setOpen] = useState(true);
 
   useEffect(() => {
     if (autoHideDuration) {
       const timer = setTimeout(() => {
-        handleClose()
-      }, autoHideDuration)
-      return () => clearTimeout(timer)
+        handleClose();
+      }, autoHideDuration);
+      return () => clearTimeout(timer);
     }
-  }, [autoHideDuration])
+  }, [autoHideDuration]);
 
-  const handleClose = () => {
-    setOpen(false)
-    if (onClose) {
-      setTimeout(onClose, 300) // Esperar a que termine la animación
+  const handleClose = (event, reason) => {
+    if (reason === 'clickaway') {
+      return;
     }
-  }
+    setOpen(false);
+    if (onClose) {
+      setTimeout(onClose, 300); // Esperar a que termine la animación
+    }
+  };
 
   return (
-    <Collapse in={open}>
+    <Snackbar
+      open={open}
+      autoHideDuration={autoHideDuration}
+      onClose={handleClose}
+      TransitionComponent={SlideTransition}
+      anchorOrigin={position}
+      sx={{
+        '& .MuiAlert-root': {
+          alignItems: 'center'
+        }
+      }}
+    >
       <Alert
-        severity={severity || 'info'}
+        variant="filled"
+        onClose={handleClose}
         action={
           <IconButton
             aria-label="close"
             color="inherit"
             size="small"
             onClick={handleClose}
+            sx={{ opacity: 0.8 }}
           >
             <CloseIcon fontSize="inherit" />
           </IconButton>
         }
-        sx={{ mb: 2, animation: 'fadeIn 0.3s' }}
+        sx={{ 
+          minWidth: 300,
+          boxShadow: 3,
+          '& .MuiAlert-message': {
+            flexGrow: 1
+          }
+        }}
       >
-        {title && <AlertTitle>{title}</AlertTitle>}
+        {title && <AlertTitle sx={{ m: 0 }}>{title}</AlertTitle>}
         {message}
       </Alert>
-    </Collapse>
-  )
+    </Snackbar>
+  );
 }
 
-export default AlertMessage
+export default AlertMessage;

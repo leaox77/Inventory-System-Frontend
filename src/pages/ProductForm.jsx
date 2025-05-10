@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   Paper,
   Grid,
@@ -15,11 +15,20 @@ import {
   Typography,
   Divider,
   Switch,
-  FormControlLabel
+  FormControlLabel,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton
 } from '@mui/material'
 import {
   Save as SaveIcon,
-  Cancel as CancelIcon
+  Cancel as CancelIcon,
+  Add as AddIcon,
+  Remove as RemoveIcon
 } from '@mui/icons-material'
 import PageHeader from '../components/ui/PageHeader'
 import LoadingIndicator from '../components/ui/LoadingIndicator'
@@ -29,6 +38,7 @@ import productService from '../services/productService'
 function ProductForm() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const isEditing = !!id
   
   const [formData, setFormData] = useState({
@@ -41,28 +51,51 @@ function ProductForm() {
     category_id: '',
     unit_type: '',
     is_active: true,
-    image_url: ''
+    inventory_assignments: []
   })
   
   const [errors, setErrors] = useState({})
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(isEditing)
   const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(null)
+  const [success, setSuccess] = useState({
+    show: false,
+    message: ''
+  });
   
   const [categories, setCategories] = useState([])
   const [unitTypes, setUnitTypes] = useState([])
+  const [branches, setBranches] = useState([])
+  const [availableBranches, setAvailableBranches] = useState([])
   
   useEffect(() => {
     const fetchFilterOptions = async () => {
       try {
-        const [categoriesData, unitTypesData] = await Promise.all([
+        const [categoriesData, unitTypesData, branchesData] = await Promise.all([
           productService.getCategories(),
-          productService.getUnitTypes()
+          productService.getUnitTypes(),
+          productService.getBranches()
         ])
         
-        setCategories(categoriesData)
-        setUnitTypes(unitTypesData)
+        // Asegurar que las categorías tengan la estructura correcta
+      setCategories(categoriesData.map(cat => ({
+        id: cat.id || cat.category_id,
+        name: cat.name
+      })))
+      
+      // Asegurar que los tipos de unidad tengan la estructura correcta
+      setUnitTypes(unitTypesData.map(unit => ({
+        id: unit.id || unit.unit_type_id,
+        name: unit.name || unit.unit_type_name
+      })))
+      
+      // Asegurar que las sucursales tengan la estructura correcta
+      const processedBranches = branchesData.map(branch => ({
+        id: branch.id || branch.branch_id,
+        name: branch.name
+      }))
+        setBranches(processedBranches)
+        setAvailableBranches(processedBranches)
       } catch (err) {
         console.error('Error al obtener opciones de filtrado:', err)
         setError('Error al cargar los datos de referencia')
@@ -76,8 +109,18 @@ function ProductForm() {
     const fetchProduct = async () => {
       if (isEditing) {
         try {
-          setInitialLoading(true)
-          const product = await productService.getProduct(id)
+          setInitialLoading(true);
+
+          const [product, inventory] = await Promise.all([
+            productService.getProduct(id),
+            productService.getProductInventory(id)
+          ]);
+
+          // Usar inventory_items del producto si existe, si no usar el endpoint de inventory
+        const inventoryData = product.inventory_items && product.inventory_items.length > 0 
+          ? product.inventory_items 
+          : inventory;
+
           setFormData({
             barcode: product.barcode || '',
             name: product.name || '',
@@ -88,8 +131,21 @@ function ProductForm() {
             category_id: product.category_id || '',
             unit_type: product.unit_type || '',
             is_active: product.is_active !== undefined ? product.is_active : true,
-            image_url: product.image_url || ''
-          })
+            inventory_assignments: inventoryData.map(item => ({
+              branch_id: item.branch_id,
+              quantity: item.quantity.toString()
+            }))
+          });
+
+          // Actualizar branches disponibles
+          const assignedBranchIds = inventory.map(item => item.branch_id);
+          setAvailableBranches(branches.filter(b => !assignedBranchIds.includes(b.id)));
+          
+          // Actualizar branches disponibles
+          if (product.inventory_items) {
+            const assignedBranchIds = product.inventory_items.map(item => item.branch_id)
+            setAvailableBranches(branches.filter(b => !assignedBranchIds.includes(b.id)))
+          }
         } catch (err) {
           console.error('Error al obtener producto:', err)
           setError('Error al cargar los datos del producto')
@@ -100,8 +156,10 @@ function ProductForm() {
       }
     }
     
+     if (branches.length > 0) { // Solo ejecutar cuando branches esté cargado
     fetchProduct()
-  }, [id, isEditing, navigate])
+  }
+}, [id, isEditing, navigate, branches])
   
   const validateForm = () => {
     const newErrors = {}
@@ -126,22 +184,35 @@ function ProductForm() {
     
     if (!formData.min_stock.trim()) {
       newErrors.min_stock = 'El stock mínimo es requerido'
-    } else if (isNaN(formData.min_stock) || parseInt(formData.min_stock) < 0) {
-      newErrors.min_stock = 'El stock mínimo debe ser un número positivo o cero'
+    } else if (isNaN(formData.min_stock) || parseInt(formData.min_stock) < 5) {
+      newErrors.min_stock = 'El stock mínimo debe ser un número positivo o cinco'
     }
     
+    // Validar categoría
     if (!formData.category_id) {
       newErrors.category_id = 'La categoría es requerida'
+    } else if (!categories.some(cat => cat.id === formData.category_id)) {
+      newErrors.category_id = 'Categoría no válida'
     }
     
+    // Validar tipo de unidad
     if (!formData.unit_type) {
       newErrors.unit_type = 'El tipo de unidad es requerido'
+    } else if (!unitTypes.some(unit => unit.id === formData.unit_type)) {
+      newErrors.unit_type = 'Tipo de unidad no válido'
     }
     
     if (formData.image_url && !/^https?:\/\/.+/.test(formData.image_url)) {
       newErrors.image_url = 'La URL de la imagen debe ser válida'
     }
     
+    // Validar asignaciones de inventario
+    formData.inventory_assignments.forEach((assignment, index) => {
+      if (!assignment.quantity || isNaN(assignment.quantity) || parseFloat(assignment.quantity) < 0) {
+        newErrors[`inventory_quantity_${index}`] = 'La cantidad debe ser un número positivo'
+      }
+    })
+
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
@@ -183,6 +254,81 @@ function ProductForm() {
     }
     handleChange(e)
   }
+
+   const handleInventoryQuantityChange = (index, value) => {
+    const updatedAssignments = [...formData.inventory_assignments]
+    updatedAssignments[index].quantity = value
+    
+    setFormData({
+      ...formData,
+      inventory_assignments: updatedAssignments
+    })
+    
+    // Limpiar error si existe
+    if (errors[`inventory_quantity_${index}`]) {
+      const newErrors = {...errors}
+      delete newErrors[`inventory_quantity_${index}`]
+      setErrors(newErrors)
+    }
+  }
+  
+  const handleAddInventoryAssignment = () => {
+    if (availableBranches.length > 0) {
+      setFormData({
+        ...formData,
+        inventory_assignments: [
+          ...formData.inventory_assignments,
+          {
+            branch_id: availableBranches[0].id,
+            quantity: '0'
+          }
+        ]
+      })
+      
+      // Actualizar branches disponibles
+      setAvailableBranches(availableBranches.slice(1))
+    }
+  }
+  
+  const handleRemoveInventoryAssignment = (index) => {
+    const removedAssignment = formData.inventory_assignments[index]
+    const updatedAssignments = formData.inventory_assignments.filter((_, i) => i !== index)
+    
+    setFormData({
+      ...formData,
+      inventory_assignments: updatedAssignments
+    })
+    
+    // Agregar la sucursal de vuelta a las disponibles
+    if (removedAssignment) {
+      const branchToAddBack = branches.find(b => b.id === removedAssignment.branch_id)
+      if (branchToAddBack) {
+        setAvailableBranches([...availableBranches, branchToAddBack])
+      }
+    }
+  }
+  
+  const handleBranchChange = (index, branchId) => {
+    const updatedAssignments = [...formData.inventory_assignments]
+    const previousBranchId = updatedAssignments[index].branch_id
+    
+    // Actualizar la asignación
+    updatedAssignments[index].branch_id = branchId
+    
+    setFormData({
+      ...formData,
+      inventory_assignments: updatedAssignments
+    })
+    
+    // Actualizar branches disponibles
+    const branchToAddBack = branches.find(b => b.id === previousBranchId)
+    const branchToRemove = branches.find(b => b.id === branchId)
+    
+    setAvailableBranches([
+      ...availableBranches.filter(b => b.id !== branchId),
+      branchToAddBack
+    ])
+  }
   
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -202,18 +348,38 @@ function ProductForm() {
       category_id: formData.category_id,
       unit_type: formData.unit_type,
       is_active: formData.is_active,
-      image_url: formData.image_url || null
+      inventory_assignments: formData.inventory_assignments.map(ia => ({
+        branch_id: ia.branch_id,
+        quantity: parseFloat(ia.quantity)
+      }))
     }
     
     try {
       setLoading(true)
+
+      const productData = {
+        ...formData,
+        price: parseFloat(formData.price),
+        cost: formData.cost ? parseFloat(formData.cost) : null,
+        min_stock: parseInt(formData.min_stock),
+        inventory_assignments: formData.inventory_assignments.map(ia => ({
+          branch_id: ia.branch_id,
+          quantity: parseFloat(ia.quantity)
+        }))
+      };
       
       if (isEditing) {
-        await productService.updateProduct(id, productData)
-        setSuccess('Producto actualizado correctamente')
-      } else {
-        await productService.createProduct(productData)
-        setSuccess('Producto creado correctamente')
+      await productService.updateProduct(id, productData);
+      setSuccess({
+        show: true,
+        message: '¡Producto actualizado correctamente!'
+      });
+    } else {
+      await productService.createProduct(productData);
+      setSuccess({
+        show: true,
+        message: '¡Producto creado exitosamente!'
+      });
         // Reset form after successful creation
         setFormData({
           barcode: '',
@@ -225,14 +391,22 @@ function ProductForm() {
           category_id: '',
           unit_type: '',
           is_active: true,
-          image_url: ''
+          inventory_assignments: []
         })
+        setAvailableBranches(branches)
       }
       
       // Redireccionar después de un breve retraso para mostrar el mensaje de éxito
       setTimeout(() => {
-        navigate('/productos')
-      }, 1500)
+      navigate('/productos', {
+        state: { 
+          showSuccess: true,
+          successMessage: isEditing 
+            ? 'Producto actualizado correctamente' 
+            : 'Producto creado exitosamente'
+        }
+      });
+    }, 1500);
       
     } catch (err) {
       console.error('Error al guardar producto:', err)
@@ -246,6 +420,33 @@ function ProductForm() {
     }
   }
   
+  const handleDelete = async () => {
+    if (window.confirm('¿Estás seguro de eliminar este producto? Esta acción no se puede deshacer.')) {
+      try {
+        setLoading(true);
+        const result = await productService.deleteProduct(id);
+        setSuccess({
+          show: true,
+          message: result.message
+        });
+        
+        setTimeout(() => {
+          navigate('/productos', {
+            state: { 
+              showSuccess: true,
+              successMessage: 'Producto eliminado correctamente'
+            }
+          });
+        }, 1500);
+        
+      } catch (err) {
+        setError(err.message || 'Error al eliminar el producto');
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
   const handleCancel = () => {
     navigate('/productos')
   }
@@ -279,9 +480,12 @@ function ProductForm() {
       
       {success && (
         <AlertMessage 
-          severity="success" 
-          message={success} 
-          onClose={() => setSuccess(null)} 
+          severity="success"
+          title="¡Éxito!"
+          message="El producto se ha creado correctamente"
+          autoHideDuration={3000}
+          onClose={() => console.log('Mensaje cerrado')}
+          position={{ vertical: 'top', horizontal: 'right' }}
         />
       )}
       
@@ -436,6 +640,87 @@ function ProductForm() {
             />
           </Grid>
           
+          <Grid item xs={12}>
+            <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+              Stock por Sucursal
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <TableContainer component={Paper} elevation={0} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Sucursal</TableCell>
+                    <TableCell align="right">Cantidad</TableCell>
+                    <TableCell width={50}></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {formData.inventory_assignments.map((assignment, index) => (
+                    <TableRow key={index}>
+                      <TableCell>
+                        <FormControl fullWidth size="small">
+                          <Select
+                            value={assignment.branch_id}
+                            onChange={(e) => handleBranchChange(index, e.target.value)}
+                          >
+                            {branches.map((branch) => (
+                              <MenuItem 
+                                key={branch.id} 
+                                value={branch.id}
+                                disabled={!availableBranches.some(b => b.id === branch.id) && 
+                                          !formData.inventory_assignments.some(ia => ia.branch_id === branch.id)}
+                              >
+                                {branch.name}
+                              </MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                      </TableCell>
+                      <TableCell align="right">
+                        <TextField
+                          type="number"
+                          size="small"
+                          fullWidth
+                          value={assignment.quantity}
+                          onChange={(e) => handleInventoryQuantityChange(index, e.target.value)}
+                          error={!!errors[`inventory_quantity_${index}`]}
+                          helperText={errors[`inventory_quantity_${index}`]}
+                          inputProps={{ min: 0, step: 0.001 }}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <IconButton 
+                          onClick={() => handleRemoveInventoryAssignment(index)}
+                          color="error"
+                        >
+                          <RemoveIcon />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            
+            {availableBranches.length > 0 && (
+              <Box sx={{ mt: 2 }}>
+                <Button
+                  variant="outlined"
+                  startIcon={<AddIcon />}
+                  onClick={handleAddInventoryAssignment}
+                >
+                  Agregar Sucursal
+                </Button>
+              </Box>
+            )}
+            
+            {formData.inventory_assignments.length === 0 && availableBranches.length === 0 && (
+              <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
+                Todas las sucursales han sido asignadas.
+              </Typography>
+            )}
+          </Grid>
+
           <Grid item xs={12} sm={6}>
             <FormControl fullWidth error={!!errors.category_id} required>
               <InputLabel id="category-label">Categoría</InputLabel>
@@ -448,7 +733,7 @@ function ProductForm() {
                 label="Categoría"
               >
                 {categories.map((category) => (
-                  <MenuItem key={category.category_id} value={category.category_id}>
+                  <MenuItem key={category.id} value={category.id}>
                     {category.name}
                   </MenuItem>
                 ))}
@@ -469,7 +754,7 @@ function ProductForm() {
                 label="Tipo de Unidad"
               >
                 {unitTypes.map((unitType) => (
-                  <MenuItem key={unitType} value={unitType}>{unitType}</MenuItem>
+                  <MenuItem key={unitType.id} value={unitType.id}>{unitType.name}</MenuItem>
                 ))}
               </Select>
               {errors.unit_type && <FormHelperText>{errors.unit_type}</FormHelperText>}
@@ -479,9 +764,21 @@ function ProductForm() {
           <Grid item xs={12}>
             <Divider sx={{ my: 2 }} />
           </Grid>
+
+
           
           <Grid item xs={12}>
             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
+              {isEditing && (
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={handleDelete}
+                  disabled={loading}
+                >
+                  {loading ? 'Eliminando...' : 'Eliminar'}
+                </Button>
+              )}
               <Button
                 variant="outlined"
                 color="inherit"
