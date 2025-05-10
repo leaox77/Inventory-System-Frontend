@@ -44,12 +44,7 @@ function Products() {
   const [rowsPerPage, setRowsPerPage] = useState(10)
   const [search, setSearch] = useState('')
   const [categories, setCategories] = useState([])
-  const [unitTypes, setUnitTypes] = useState([
-    { id: 1, name: 'Unidad' },
-    { id: 2, name: 'Kg' },
-    { id: 3, name: 'Litro' },
-    { id: 4, name: 'Paquete' }
-  ])
+  const [unitTypes, setUnitTypes] = useState([])
   const [branches, setBranches] = useState([])
   const [filters, setFilters] = useState({
     category_id: '',
@@ -104,36 +99,26 @@ function Products() {
     }
   };
   
-  // Usar useEffect con dependencias correctas
-  useEffect(() => {
-    fetchProducts();
-  }, [page, rowsPerPage, search, filters.category_id, filters.unit_type, filters.branch_id]);
-  
+  // Consolidar lógica en un solo useEffect con debounce
   useEffect(() => {
     const timer = setTimeout(() => {
       fetchProducts();
     }, 500);
-  
-    return () => clearTimeout(timer);
-  }, [page, rowsPerPage, search, filters]);
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchProducts()
-    }, 500) // Debounce para la búsqueda
-  
-    return () => clearTimeout(timer)
-  }, [page, rowsPerPage, search, filters])
+    return () => clearTimeout(timer);
+  }, [page, rowsPerPage, search, filters.category_id, filters.unit_type, filters.branch_id]);
 
   const fetchFilterOptions = async () => {
     try {
-      const [branchesData, categoriesData] = await Promise.all([
+      const [branchesData, categoriesData, unitTypesData] = await Promise.all([
         productService.getBranches(),
-        productService.getCategories()
+        productService.getCategories(),
+        productService.getUnitTypes()
       ])
       
       console.log('Categorías recibidas:', categoriesData) // Para depuración
       console.log('Sucursales recibidas:', branchesData) // Para depuración
+      console.log('Tipos de unidad recibidos:', unitTypesData) // Para depuración
       
       // Asegurar el formato correcto de las categorías
       const formattedCategories = Array.isArray(categoriesData) 
@@ -142,9 +127,18 @@ function Products() {
             name: cat.name || cat.category_name
           }))
         : []
+
+      // Asegura el formato de tipo de unidad
+      const formattedUnitTypes = Array.isArray(unitTypesData) 
+        ? unitTypesData.map(unit => ({
+            id: unit.id || unit.unit_type_id,
+            name: unit.name || unit.unit_type_name
+          }))
+        : []
       
       setCategories(formattedCategories)
       setBranches(branchesData)
+      setUnitTypes(unitTypesData)
     } catch (err) {
       console.error('Error al obtener opciones de filtrado:', err)
       setError('Error al cargar opciones de filtrado')
@@ -217,9 +211,9 @@ function Products() {
   }
 
   const calculateStock = (product) => {
-    if (!product.inventory_items || product.inventory_items.length === 0) return 0
-    return product.inventory_items.reduce((total, item) => total + item.quantity, 0)
-  }
+    // Usamos directamente el stock que viene del backend
+    return product.stock || 0;
+  };
 
   return (
     <>
@@ -307,7 +301,7 @@ function Products() {
             >
               <MenuItem value="">Todas</MenuItem>
               {unitTypes.map((unit) => (
-                <MenuItem key={unit.id} value={unit.name}>
+                <MenuItem key={unit.id} value={unit.id}>
                   {unit.name}
                 </MenuItem>
               ))}
@@ -421,13 +415,16 @@ function Products() {
                         </TableCell>
                         <TableCell align="right">
                           <Chip 
-                            label={product.min_stock || 0} 
+                            label={stock} 
                             size="small"
-                            color={product.min_stock < 5 ? "error" : product.min_stock < 20 ? "warning" : "success"}
+                            color={
+                    stock === 0 ? "error" : 
+                    stock < (product.min_stock || 5) ? "warning" : "success"
+                  }
                             variant="outlined"
                           />
                         </TableCell>
-                        <TableCell>{product.unit_type}</TableCell>
+                        <TableCell>{unitTypes.find(u => u.id === product.unit_type)?.name || product.unit_type }</TableCell>
                         <TableCell align="center">
                           <Tooltip title="Editar">
                             <IconButton 

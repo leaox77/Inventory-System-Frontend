@@ -92,13 +92,11 @@ const productService = {
   },
 
   getUnitTypes: async () => {
-    // Puedes mantener esto local o obtenerlo del backend
-    return [
-      { id: 1, name: 'Unidad' },
-      { id: 2, name: 'Kg' },
-      { id: 3, name: 'Litro' },
-      { id: 4, name: 'Paquete' }
-    ]
+    const response = await api.get('/unit-types')
+    return response.data.map(unitType => ({
+      id: unitType.id || unitType.unit_type_id,
+      name: unitType.name || unitType.unit_type_name
+    }))
   },
 
   getMinStock: async (id) => {
