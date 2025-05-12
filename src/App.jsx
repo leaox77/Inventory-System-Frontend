@@ -9,6 +9,8 @@ import Dashboard from './pages/Dashboard'
 import Products from './pages/Products'
 import ProductForm from './pages/ProductForm'
 import Sales from './pages/Sales'
+import NewSale from './pages/NewSale'
+import SaleDetail from './pages/SaleDetail'
 import NotFound from './pages/NotFound'
 
 // Layout
@@ -52,6 +54,9 @@ function App() {
           <Route path="productos/nuevo" element={<ProductForm />} />
           <Route path="productos/editar/:id" element={<ProductForm />} />
           <Route path="ventas" element={<Sales />} />
+          <Route path="ventas/nueva" element={<NewSale />} />
+          <Route path="ventas/editar/:id" element={<NewSale />} />
+          <Route path="ventas/:id" element={<NewSale />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

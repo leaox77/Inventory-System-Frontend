@@ -1,0 +1,91 @@
+  // Configuración para el gráfico de ventas por categoría
+  const categorySalesChartData = {
+    labels: reportData?.salesByCategory.map(item => item.category) || [],
+    datasets: [
+      {
+        label: 'Ventas por Categoría',
+        data: reportData?.salesByCategory.map(item => item.total) || [],
+        backgroundColor: [
+          'rgba(54, 162, 235, 0.8)',
+          'rgba(255, 99, 132, 0.8)',
+          'rgba(255, 206, 86, 0.8)',
+        ],
+        borderWidth: 1
+      }
+    ]
+  }
+
+<Grid item xs={12}>
+          <Paper 
+            elevation={2}
+            sx={{ 
+              p: 3, 
+              borderRadius: 2 
+            }}
+          >
+            <Typography variant="h6" gutterBottom component="div">
+              Ventas por Categoría
+            </Typography>
+            <Grid container spacing={3}>
+              <Grid item xs={12} md={6}>
+                <Box sx={{ height: 300 }}>
+                  <Bar 
+                    data={categorySalesChartData}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        tooltip: {
+                          callbacks: {
+                            label: function(context) {
+                              return '$' + context.raw.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+                            }
+                          }
+                        }
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          ticks: {
+                            callback: function(value) {
+                              return '$' + value.toLocaleString('es-MX');
+                            }
+                          }
+                        }
+                      }
+                    }}
+                  />
+                </Box>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow>
+                        <TableCell>Categoría</TableCell>
+                        <TableCell align="right">Ventas</TableCell>
+                        <TableCell align="right">Porcentaje</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {reportData?.salesByCategory.map((item) => {
+                        const percentage = (item.total / reportData.totalSales) * 100;
+                        return (
+                          <TableRow key={item.category}>
+                            <TableCell>{item.category}</TableCell>
+                            <TableCell align="right">
+                              ${item.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                            <TableCell align="right">
+                              {percentage.toFixed(2)}%
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Grid>
+            </Grid>
+          </Paper>
+        </Grid>
