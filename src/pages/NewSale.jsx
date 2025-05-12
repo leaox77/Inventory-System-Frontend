@@ -20,7 +20,8 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  Alert
+  Alert,
+  Autocomplete
 } from '@mui/material'
 import {
   Save as SaveIcon,
@@ -28,8 +29,10 @@ import {
   Add as AddIcon,
   Delete as DeleteIcon
 } from '@mui/icons-material'
+import { debounce } from 'lodash'
 import PageHeader from '../components/ui/PageHeader'
 import LoadingIndicator from '../components/ui/LoadingIndicator'
+import ClientSearch from '../components/ui/ClientSearch'
 import salesService from '../services/salesService'
 import productService from '../services/productService'
 import clientService from '../services/clientService'
@@ -39,7 +42,7 @@ function NewSale() {
   const [formData, setFormData] = useState({
     client_id: '',
     branch_id: '',
-    payment_method: 'EFECTIVO',
+    payment_method_id: '',
     discount: 0,
     items: []
   })
@@ -51,47 +54,59 @@ function NewSale() {
   const [success, setSuccess] = useState(null)
   const [clientNit, setClientNit] = useState('');
   const [selectedClient, setSelectedClient] = useState(null);
+  const [paymentMethods, setPaymentMethods] = useState([]);
 
-  const handleNitChange = async (e) => {
-    const nit = e.target.value;
-    setClientNit(nit);
-    setSelectedClient(null); // Limpiar cliente seleccionado al cambiar el NIT
-    setFormData({ ...formData, client_id: '' }); // Resetear client_id
+  // Agregar función debounce para búsqueda de productos
+const [productSearch, setProductSearch] = useState('')
 
-    if (nit.length >= 3) { // Puedes ajustar la longitud mínima para la búsqueda
-      try {
-        const client = await clientService.getClientByNit(nit);
-        setSelectedClient(client);
-        setFormData({ ...formData, client_id: client.client_id });
-        setError(null);
-      } catch (error) {
-        setSelectedClient(null);
-        setFormData({ ...formData, client_id: '' });
-        setError(error); // Muestra el error si no se encuentra el cliente
-      }
-    } else if (nit.length < 3) {
-      setError(null); // Limpiar error si el NIT es muy corto
-    }
-  };
+const fetchProducts = debounce(async (search) => {
+  try {
+    const data = await productService.getProducts({ 
+      limit: 20,
+      search 
+    })
+    setProducts(data.items)
+  } catch (err) {
+    console.error('Error fetching products:', err)
+  }
+}, 300)
+
+useEffect(() => {
+  fetchProducts(productSearch)
+  return () => fetchProducts.cancel()
+}, [productSearch])
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [productsData, branchesData] = await Promise.all([
-          productService.getProducts({ limit: 1000 }),
-          productService.getBranches()
-        ])
-        
-        setProducts(productsData.items)
-        setBranches(branchesData)
-      } catch (err) {
-        console.error('Error al cargar datos:', err)
-        setError('Error al cargar los datos necesarios')
-      }
+  const fetchPaymentMethods = async () => {
+    try {
+      const methods = await salesService.getPaymentMethods();
+      setPaymentMethods(methods);
+    } catch (err) {
+      console.error('Error loading payment methods:', err);
     }
-    
-    fetchData()
-  }, [])
+  };
+  fetchPaymentMethods();
+}, []);
+
+  useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const [productsData, branchesData] = await Promise.all([
+        productService.getProducts({ limit: 1000 }),
+        productService.getBranches()
+      ]);
+      
+      console.log('Branches data:', branchesData); // Verifica la estructura
+      setProducts(productsData.items);
+      setBranches(branchesData);
+    } catch (err) {
+      console.error('Error al cargar datos:', err);
+      setError('Error al cargar los datos necesarios');
+    }
+  };
+  
+  fetchData();
+}, []);
 
   const handleAddItem = () => {
     setFormData({
@@ -159,18 +174,24 @@ const handleSubmit = async (e) => {
     if (stockErrors.length > 0) {
       throw new Error(stockErrors.join('\n'))
     }
+
+    if (!formData.payment_method_id) {
+      setError('Debes seleccionar un método de pago');
+      return;
+    }
+
     // Convertir los IDs a números
      // Preparar datos para enviar
     const saleData = {
       client_id: formData.client_id || null,
       branch_id: formData.branch_id,
-      payment_method: formData.payment_method,
+      payment_method_id: formData.payment_method_id,
       discount: formData.discount,
       items: formData.items.map(item => ({
         product_id: item.product_id,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        discount: item.discount || 0
+        quantity: item.quantity.toString(),
+        unit_price: item.unit_price.toString(),
+        discount: (item.discount || 0).toString() 
       }))
     };
 
@@ -218,41 +239,57 @@ const handleSubmit = async (e) => {
       <Paper component="form" elevation={2} sx={{ p: 3, borderRadius: 2 }} onSubmit={handleSubmit}>
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
+            <ClientSearch 
+                value={selectedClient}
+                onChange={(client) => {
+                    console.log('Client selected:', client);
+                    setSelectedClient(client); // Actualizar el estado selectedClient
+                    setFormData({...formData, client_id: client?.client_id || null});
+                }}
+            />
+            </Grid>
+            <Grid item xs={12} md={6}>
+
             <FormControl fullWidth>
-              <InputLabel id="branch-label">Sucursal *</InputLabel>
-              <Select
-                labelId="branch-label"
-                id="branch_id"
-                name="branch_id"
-                value={formData.branch_id}
-                onChange={(e) => setFormData({...formData, branch_id: e.target.value})}
-                label="Sucursal *"
-                required
-              >
-                {branches.map((branch) => (
-                    <MenuItem key={branch.branch_id} value={branch.branch_id}>
+                <InputLabel id="branch-label">Sucursal *</InputLabel>
+                <Select
+                    labelId="branch-label"
+                    id="branch_id"
+                    name="branch_id"
+                    value={formData.branch_id}
+                    onChange={(e) => setFormData({...formData, branch_id: e.target.value})}
+                    label="Sucursal *"
+                    required
+                >
+                    {branches.map((branch) => (
+                    <MenuItem 
+                        key={`branch-${branch.id}`} 
+                        value={branch.id} // Usa branch_id directamente
+                    >
                         {branch.name}
                     </MenuItem>
-                ))}
-              </Select>
+                    ))}
+                </Select>
             </FormControl>
           </Grid>
 
           <Grid item xs={12} md={6}>
             <FormControl fullWidth>
               <InputLabel id="payment-label">Método de Pago *</InputLabel>
-              <Select
+             <Select
                 labelId="payment-label"
-                id="payment_method"
-                name="payment_method"
-                value={formData.payment_method}
-                onChange={(e) => setFormData({...formData, payment_method: e.target.value})}
+                id="payment_method_id"
+                name="payment_method_id"
+                value={formData.payment_method_id} // Asegúrate que esto coincide
+                onChange={(e) => setFormData({...formData, payment_method_id: e.target.value})}
                 label="Método de Pago *"
                 required
               >
-                <MenuItem value="EFECTIVO">Efectivo</MenuItem>
-                <MenuItem value="TARJETA">Tarjeta</MenuItem>
-                <MenuItem value="TRANSFERENCIA">Transferencia</MenuItem>
+                {paymentMethods.map((method) => (
+                  <MenuItem key={`payment-${method.payment_method_id}`} value={method.payment_method_id}>
+                    {method.name}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           </Grid>
@@ -286,24 +323,26 @@ const handleSubmit = async (e) => {
                 </TableHead>
                 <TableBody>
                   {formData.items.map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        <FormControl fullWidth size="small">
-                          <InputLabel id={`product-label-${index}`}>Producto</InputLabel>
-                          <Select
-                            labelId={`product-label-${index}`}
-                            value={item.product_id}
-                            onChange={(e) => handleItemChange(index, 'product_id', e.target.value)}
-                            label="Producto"
-                          >
-                            {products.map((product) => (
-                              <MenuItem key={product.product_id} value={product.product_id}>
-                                {product.name} - ${product.price.toFixed(2)}
-                              </MenuItem>
-                            ))}
-                          </Select>
-                        </FormControl>
-                      </TableCell>
+                    <TableRow key={`row-${index}-${item.product_id || 'new'}`}>
+                        <TableCell>
+                            <Autocomplete
+                            key={`product-${index}`}
+                            options={products}
+                            value={products.find(p => p.product_id === item.product_id) || null}
+                            onChange={(_, newValue) => handleItemChange(index, 'product_id', newValue?.product_id || '')}
+                            getOptionLabel={(option) => `${option.name} - $${option.price.toFixed(2)}`}
+                            isOptionEqualToValue={(option, value) => option.product_id === value?.product_id}
+                            renderInput={(params) => (
+                                <TextField
+                                {...params}
+                                label="Producto"
+                                size="small"
+                                fullWidth
+                                />
+                            )}
+                            noOptionsText="No hay productos"
+                            />
+                        </TableCell>
                       <TableCell>
                         <TextField
                           type="number"

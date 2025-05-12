@@ -25,6 +25,7 @@ const salesService = {
           name: sale.branch?.name || 'Sucursal no especificada'
         },
         status: sale.status?.label || sale.status || 'COMPLETADA',
+        payment_method: sale.payment_method?.name || 'Método de pago no especificado',
       }));
     } catch (error) {
       console.error('Error in salesService.getSales:', error);
@@ -48,6 +49,12 @@ const salesService = {
             'Error fetching sale'
     }
   },
+
+  getPaymentMethods: async () => {
+    const response = await api.get('/payment-methods');
+    return response.data;
+  },
+
 
   // Create a new sale
   createSale: async (saleData) => {

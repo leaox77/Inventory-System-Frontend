@@ -37,6 +37,7 @@ import PageHeader from '../components/ui/PageHeader'
 import LoadingIndicator from '../components/ui/LoadingIndicator'
 import salesService from '../services/salesService'
 import productService from '../services/productService'
+import { formatQuantity } from '../utils/format'
 
 // Componente de fila expandible para detalles de venta
 function SaleRow({ sale, onDelete }) {
@@ -157,7 +158,7 @@ function SaleRow({ sale, onDelete }) {
         <TableCell align="right">
           ${sale.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
         </TableCell>
-        <TableCell>{sale.payment_method}</TableCell>
+        <TableCell>{sale.payment_method || 'Método no especificado'}</TableCell>
         <TableCell>
           <Chip
             label={statusInfo.label}
@@ -169,9 +170,6 @@ function SaleRow({ sale, onDelete }) {
         <TableCell align="center">
           <IconButton size="small" color="primary" onClick={handleViewDetails}>
             <VisibilityIcon fontSize="small" />
-          </IconButton>
-          <IconButton size="small" color="secondary" onClick={handleEdit}>
-            <EditIcon fontSize="small" />
           </IconButton>
           <IconButton size="small" color="error" onClick={handleDelete}>
             <DeleteIcon fontSize="small" />
@@ -203,7 +201,7 @@ function SaleRow({ sale, onDelete }) {
                       <TableCell component="th" scope="row">
                         {item.product?.name || 'Producto no encontrado'}
                       </TableCell>
-                      <TableCell align="right">{item.quantity}</TableCell>
+                      <TableCell align="right">{formatQuantity(item.quantity)}</TableCell>
                       <TableCell align="right">
                         ${item.unit_price.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
                       </TableCell>

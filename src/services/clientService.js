@@ -1,16 +1,35 @@
-import api from './api'; // Asegúrate de tener tu instancia de axios configurada
+// clientService.js
+import api from './api'
 
-const clientService = {
-  getClientByNit: async (nit) => {
-    try {
-      const response = await api.get(`/clients/by_nit/${nit}`);
-      return response.data;
-    } catch (error) {
-      console.error('Error in clientService.getClientByNit:', error);
-      throw error.response?.data?.detail || error.message || 'Error al buscar cliente por NIT';
-    }
+export default {
+  // Buscar clientes (puedes usar nit o name)
+  searchClients: async (query) => {
+  try {
+    const response = await api.get('/clients/search', {
+      params: { 
+        search_term: query  // Usamos el nuevo parámetro
+      }
+    })
+    return response.data
+  } catch (error) {
+    console.error('Error searching clients:', error)
+    throw error
+  }
+},
+
+  // Otros métodos del servicio...
+  getClient: async (id) => {
+    const response = await api.get(`/clients/${id}`)
+    return response.data
   },
-  // ... otras funciones de cliente si las tienes
-};
-
-export default clientService;
+  
+  createClient: async (clientData) => {
+    const response = await api.post('/clients', clientData)
+    return response.data
+  },
+  
+  updateClient: async (id, clientData) => {
+    const response = await api.put(`/clients/${id}`, clientData)
+    return response.data
+  }
+}
