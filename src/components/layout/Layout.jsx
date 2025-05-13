@@ -46,6 +46,7 @@ function Layout() {
     { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
     { text: 'Productos', icon: <InventoryIcon />, path: '/productos' },
     { text: 'Ventas', icon: <ShoppingCartIcon />, path: '/ventas' },
+    { text: 'Proveedores', icon: <PersonIcon />, path: '/proveedores' },
   ]
 
   const handleDrawerToggle = () => {

@@ -198,7 +198,7 @@ const handleSubmit = async (e) => {
     const createdSale = await salesService.createSale(saleData)
     setSuccess('Venta creada exitosamente')
     setTimeout(() => {
-      navigate(`/ventas/${createdSale.sale_id}`)
+      navigate(`/ventas/`)
     }, 1500)
   } catch (err) {
     console.error('Error al crear venta:', err)

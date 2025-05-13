@@ -158,7 +158,7 @@ function SaleRow({ sale, onDelete }) {
         <TableCell align="right">
           ${sale.total.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
         </TableCell>
-        <TableCell>{sale.payment_method || 'Método no especificado'}</TableCell>
+        <TableCell>{sale.payment_method?.name || 'Método no especificado'}</TableCell>
         <TableCell>
           <Chip
             label={statusInfo.label}

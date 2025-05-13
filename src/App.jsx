@@ -11,6 +11,8 @@ import ProductForm from './pages/ProductForm'
 import Sales from './pages/Sales'
 import NewSale from './pages/NewSale'
 import SaleDetail from './pages/SaleDetail'
+import SuppliersPage from './pages/SuppliersPage'
+import SuppliersForm from './components/ui/SupplierForm'
 import NotFound from './pages/NotFound'
 
 // Layout
@@ -56,7 +58,9 @@ function App() {
           <Route path="ventas" element={<Sales />} />
           <Route path="ventas/nueva" element={<NewSale />} />
           <Route path="ventas/editar/:id" element={<NewSale />} />
-          <Route path="ventas/:id" element={<NewSale />} />
+          <Route path="proveedores" element={<SuppliersPage/>}></Route>
+          <Route path="proveedores/nuevo" element={<SuppliersForm/>}></Route>
+          <Route path="proveedores/editar/:id" element={<SuppliersForm/>}></Route>
         </Route>
 
         <Route path="*" element={<NotFound />} />
