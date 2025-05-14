@@ -1,7 +1,8 @@
 import api from './api'
 
 const authService = {
-  login: async (credentials) => {
+  // authService.js - Versión corregida
+login: async (credentials) => {
     try {
       const formData = new URLSearchParams()
       formData.append('username', credentials.username)
@@ -13,16 +14,21 @@ const authService = {
         },
       })
 
-      // Asegurarse de que la respuesta contiene el token en el formato correcto
-      const token = response.data.access_token || response.data.token
+      const token = response.data.access_token
       if (!token) {
         throw new Error('No se recibió token en la respuesta')
       }
 
-      localStorage.setItem('token', token)
+      // Decodificar el token JWT para obtener los datos del usuario
+      const payload = JSON.parse(atob(token.split('.')[1]))
       
-      // Obtener información del usuario si está disponible
-      const user = response.data.user || { username: credentials.username }
+      const user = {
+        username: payload.sub,
+        role_id: payload.role_id,
+        permissions: payload.permissions || {}
+      }
+
+      localStorage.setItem('token', token)
       localStorage.setItem('user', JSON.stringify(user))
       
       return { token, user }

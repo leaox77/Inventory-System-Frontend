@@ -17,6 +17,7 @@ import {
   VisibilityOff as VisibilityOffIcon
 } from '@mui/icons-material'
 import { useAuth } from '../contexts/AuthContext'
+import { useNavigate } from 'react-router-dom'
 
 function Login() {
   const [formData, setFormData] = useState({
@@ -26,6 +27,7 @@ function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [formErrors, setFormErrors] = useState({})
   const { login, error, loading } = useAuth()
+  const navigate = useNavigate()
 
   const handleChange = (e) => {
     const { name, value } = e.target
@@ -54,7 +56,7 @@ function Login() {
     return errors
   }
 
-  const handleSubmit = async (e) => {
+   const handleSubmit = async (e) => {
     e.preventDefault()
     
     const errors = validateForm()
@@ -65,8 +67,12 @@ function Login() {
     
     try {
       await login(formData)
+      // Redirigir según el rol
+      const user = JSON.parse(localStorage.getItem('user'))
+      if (user) {
+        navigate('/') // O cualquier otra ruta por defecto
+      }
     } catch (err) {
-      // Los errores de autenticación son manejados por el AuthContext
       console.error('Error en inicio de sesión:', err)
     }
   }

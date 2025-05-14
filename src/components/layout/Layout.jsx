@@ -47,14 +47,24 @@ function Layout() {
   const location = useLocation()
 
   const menuItems = [
-    { text: 'Dashboard', icon: <DashboardIcon />, path: '/' },
-    { text: 'Productos', icon: <InventoryIcon />, path: '/productos' },
-    { text: 'Ventas', icon: <ShoppingCartIcon />, path: '/ventas' },
-    { text: 'Proveedores', icon: <BusinessIcon />, path: '/proveedores' },
-    { text: 'Sucursales', icon: <StoreIcon />, path: '/sucursales' },
-    { text: 'Clientes', icon: <PersonIcon />, path: '/clientes' },
-    { text: 'Usuarios', icon: <PeopleAltIcon />, path: '/usuarios' }
-  ]
+  { text: 'Dashboard', icon: <DashboardIcon />, path: '/', permission: 'all' },
+  { text: 'Productos', icon: <InventoryIcon />, path: '/productos', permission: 'inventory' },
+  { text: 'Ventas', icon: <ShoppingCartIcon />, path: '/ventas', permission: 'sales' },
+  { text: 'Proveedores', icon: <BusinessIcon />, path: '/proveedores', permission: 'inventory' },
+  { text: 'Sucursales', icon: <StoreIcon />, path: '/sucursales', permission: 'reports' },
+  { text: 'Clientes', icon: <PersonIcon />, path: '/clientes', permission: 'reports' },
+  { text: 'Usuarios', icon: <PeopleAltIcon />, path: '/usuarios', permission: 'all' }
+]
+
+ const hasPermission = (permission) => {
+  if (!currentUser) return false
+  if (currentUser.role_id === 1) return true // Admin tiene acceso a todo
+  return currentUser.permissions?.[permission] === true
+}
+
+const filteredMenuItems = menuItems.filter(item => 
+  hasPermission(item.permission)
+)
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen)
@@ -99,7 +109,7 @@ function Layout() {
       </Toolbar>
       <Divider />
       <List>
-        {menuItems.map((item) => (
+        {filteredMenuItems.map((item) => (
           <ListItem key={item.text} disablePadding>
             <ListItemButton 
               onClick={() => handleMenuItemClick(item.path)}

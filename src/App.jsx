@@ -24,8 +24,8 @@ import UserForm from './pages/UserForm'
 // Layout
 import Layout from './components/layout/Layout'
 
-function ProtectedRoute({ children }) {
-  const { isAuthenticated, loading } = useAuth()
+function ProtectedRoute({ children, requiredPermission }) {
+  const { isAuthenticated, loading, hasPermission } = useAuth()
   const location = useLocation()
 
   if (loading) {
@@ -34,6 +34,10 @@ function ProtectedRoute({ children }) {
 
   if (!isAuthenticated) {
     return <Navigate to="/login" state={{ from: location }} replace />
+  }
+
+  if (requiredPermission && !hasPermission(requiredPermission)) {
+    return <Navigate to="/" state={{ from: location }} replace />
   }
 
   return children
@@ -58,25 +62,113 @@ function App() {
           </ProtectedRoute>
         }>
           <Route index element={<Dashboard />} />
-          <Route path="productos" element={<Products />} />
-          <Route path="productos/nuevo" element={<ProductForm />} />
-          <Route path="productos/editar/:id" element={<ProductForm />} />
-          <Route path="ventas" element={<Sales />} />
-          <Route path="ventas/nueva" element={<NewSale />} />
-          <Route path="ventas/editar/:id" element={<NewSale />} />
-          <Route path="proveedores" element={<SuppliersPage/>}></Route>
-          <Route path="proveedores/nuevo" element={<SuppliersForm/>}></Route>
-          <Route path="proveedores/editar/:id" element={<SuppliersForm/>}></Route>
-          <Route path="sucursales" element={<BranchesPage />} />
-          <Route path="sucursales/nueva" element={<BranchForm />} />
-          <Route path="sucursales/editar/:id" element={<BranchForm />} />
-          <Route path="ventas/:id" element={<SaleDetail />} />
-          <Route path="clientes" element={<ClientsPage />} />
-          <Route path="clientes/nuevo" element={<ClientForm />} />
-          <Route path="clientes/editar/:id" element={<ClientForm />} />
-          <Route path="usuarios" element={<UsersPage />} />
-          <Route path="usuarios/nuevo" element={<UserForm />} />
-          <Route path="usuarios/editar/:id" element={<UserForm />} />
+          
+          {/* Productos - Requiere permiso 'inventory' */}
+          <Route path="/productos" element={
+            <ProtectedRoute requiredPermission="inventory">
+              <Products />
+            </ProtectedRoute>
+          } />
+          <Route path="productos/nuevo" element={
+            <ProtectedRoute requiredPermission="inventory">
+              <ProductForm />
+            </ProtectedRoute>
+          } />
+          <Route path="productos/editar/:id" element={
+            <ProtectedRoute requiredPermission="inventory">
+              <ProductForm />
+            </ProtectedRoute>
+          } />
+          
+          {/* Ventas - Requiere permiso 'sales' */}
+          <Route path="ventas" element={
+            <ProtectedRoute requiredPermission="sales">
+              <Sales />
+            </ProtectedRoute>
+          } />
+          <Route path="ventas/nueva" element={
+            <ProtectedRoute requiredPermission="sales">
+              <NewSale />
+            </ProtectedRoute>
+          } />
+          <Route path="ventas/editar/:id" element={
+            <ProtectedRoute requiredPermission="sales">
+              <NewSale />
+            </ProtectedRoute>
+          } />
+          <Route path="ventas/:id" element={
+            <ProtectedRoute requiredPermission="sales">
+              <SaleDetail />
+            </ProtectedRoute>
+          } />
+          
+          {/* Proveedores - Requiere permiso 'inventory' */}
+          <Route path="proveedores" element={
+            <ProtectedRoute requiredPermission="inventory">
+              <SuppliersPage />
+            </ProtectedRoute>
+          } />
+          <Route path="proveedores/nuevo" element={
+            <ProtectedRoute requiredPermission="inventory">
+              <SuppliersForm />
+            </ProtectedRoute>
+          } />
+          <Route path="proveedores/editar/:id" element={
+            <ProtectedRoute requiredPermission="inventory">
+              <SuppliersForm />
+            </ProtectedRoute>
+          } />
+          
+          {/* Sucursales - Requiere permiso 'reports' */}
+          <Route path="sucursales" element={
+            <ProtectedRoute requiredPermission="reports">
+              <BranchesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="sucursales/nueva" element={
+            <ProtectedRoute requiredPermission="reports">
+              <BranchForm />
+            </ProtectedRoute>
+          } />
+          <Route path="sucursales/editar/:id" element={
+            <ProtectedRoute requiredPermission="reports">
+              <BranchForm />
+            </ProtectedRoute>
+          } />
+          
+          {/* Clientes - Requiere permiso 'reports' */}
+          <Route path="clientes" element={
+            <ProtectedRoute requiredPermission="reports">
+              <ClientsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="clientes/nuevo" element={
+            <ProtectedRoute requiredPermission="reports">
+              <ClientForm />
+            </ProtectedRoute>
+          } />
+          <Route path="clientes/editar/:id" element={
+            <ProtectedRoute requiredPermission="reports">
+              <ClientForm />
+            </ProtectedRoute>
+          } />
+          
+          {/* Usuarios - Solo admin (rol_id 1) */}
+          <Route path="usuarios" element={
+            <ProtectedRoute requiredPermission="all">
+              <UsersPage />
+            </ProtectedRoute>
+          } />
+          <Route path="usuarios/nuevo" element={
+            <ProtectedRoute requiredPermission="all">
+              <UserForm />
+            </ProtectedRoute>
+          } />
+          <Route path="usuarios/editar/:id" element={
+            <ProtectedRoute requiredPermission="all">
+              <UserForm />
+            </ProtectedRoute>
+          } />
         </Route>
 
         <Route path="*" element={<NotFound />} />
