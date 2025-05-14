@@ -26,15 +26,9 @@ function ClientSearch({ value, onChange }) {
     <Autocomplete
       options={options}
       value={value}
-      onChange={(_, newValue) => {
-        console.log('Selected client:', newValue)
-        onChange(newValue)
-      }}
+      onChange={(_, newValue) => onChange(newValue)}
       inputValue={inputValue}
-      onInputChange={(_, newInputValue) => {
-        console.log('Input changed:', newInputValue)
-        setInputValue(newInputValue)
-      }}
+      onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
       getOptionLabel={(option) => option ? `${option.ci_nit} - ${option.full_name}` : ''}
       isOptionEqualToValue={(option, value) => option?.client_id === value?.client_id}
       renderOption={(props, option) => (
@@ -42,7 +36,7 @@ function ClientSearch({ value, onChange }) {
           <Box>
             <Typography>{option.full_name}</Typography>
             <Typography variant="body2" color="text.secondary">
-              CI/NIT: {option.ci_nit}
+              CI/NIT: {option.ci_nit} | Tel: {option.phone || 'N/A'}
             </Typography>
           </Box>
         </Box>

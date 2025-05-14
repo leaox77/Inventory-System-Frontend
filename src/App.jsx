@@ -16,6 +16,8 @@ import SuppliersForm from './components/ui/SupplierForm'
 import NotFound from './pages/NotFound'
 import BranchesPage from './pages/BranchesPage'
 import BranchForm from './pages/BranchForm'
+import ClientsPage from './pages/ClientsPage'
+import ClientForm from './pages/ClientForm'
 
 // Layout
 import Layout from './components/layout/Layout'
@@ -66,6 +68,10 @@ function App() {
           <Route path="sucursales" element={<BranchesPage />} />
           <Route path="sucursales/nueva" element={<BranchForm />} />
           <Route path="sucursales/editar/:id" element={<BranchForm />} />
+          <Route path="ventas/:id" element={<SaleDetail />} />
+          <Route path="clientes" element={<ClientsPage />} />
+          <Route path="clientes/nuevo" element={<ClientForm />} />
+          <Route path="clientes/editar/:id" element={<ClientForm />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />
