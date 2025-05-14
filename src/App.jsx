@@ -18,6 +18,8 @@ import BranchesPage from './pages/BranchesPage'
 import BranchForm from './pages/BranchForm'
 import ClientsPage from './pages/ClientsPage'
 import ClientForm from './pages/ClientForm'
+import UsersPage from './pages/UsersPage'
+import UserForm from './pages/UserForm'
 
 // Layout
 import Layout from './components/layout/Layout'
@@ -72,6 +74,9 @@ function App() {
           <Route path="clientes" element={<ClientsPage />} />
           <Route path="clientes/nuevo" element={<ClientForm />} />
           <Route path="clientes/editar/:id" element={<ClientForm />} />
+          <Route path="usuarios" element={<UsersPage />} />
+          <Route path="usuarios/nuevo" element={<UserForm />} />
+          <Route path="usuarios/editar/:id" element={<UserForm />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />
