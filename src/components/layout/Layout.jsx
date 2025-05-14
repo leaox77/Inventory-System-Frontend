@@ -34,6 +34,7 @@ import {
 } from '@mui/icons-material'
 import { useAuth } from '../../contexts/AuthContext'
 import { useTheme } from '../../contexts/ThemeContext'
+import Notifications from '../ui/Notifications'
 
 const drawerWidth = 240
 
@@ -156,6 +157,7 @@ function Layout() {
           <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             {menuItems.find(item => isActive(item.path))?.text || 'Dashboard'}
           </Typography>
+          <Notifications />
           <Tooltip title="Configuración de cuenta">
             <IconButton
               onClick={handleProfileMenuOpen}
@@ -165,7 +167,7 @@ function Layout() {
               aria-haspopup="true"
             >
               <Avatar sx={{ width: 32, height: 32, bgcolor: 'primary.main' }}>
-                {currentUser?.name?.charAt(0) || 'U'}
+                {currentUser?.username?.charAt(0) || 'U'}
               </Avatar>
             </IconButton>
           </Tooltip>
