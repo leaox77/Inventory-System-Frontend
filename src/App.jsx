@@ -14,6 +14,8 @@ import SaleDetail from './pages/SaleDetail'
 import SuppliersPage from './pages/SuppliersPage'
 import SuppliersForm from './components/ui/SupplierForm'
 import NotFound from './pages/NotFound'
+import BranchesPage from './pages/BranchesPage'
+import BranchForm from './pages/BranchForm'
 
 // Layout
 import Layout from './components/layout/Layout'
@@ -61,6 +63,9 @@ function App() {
           <Route path="proveedores" element={<SuppliersPage/>}></Route>
           <Route path="proveedores/nuevo" element={<SuppliersForm/>}></Route>
           <Route path="proveedores/editar/:id" element={<SuppliersForm/>}></Route>
+          <Route path="sucursales" element={<BranchesPage />} />
+          <Route path="sucursales/nueva" element={<BranchForm />} />
+          <Route path="sucursales/editar/:id" element={<BranchForm />} />
         </Route>
 
         <Route path="*" element={<NotFound />} />

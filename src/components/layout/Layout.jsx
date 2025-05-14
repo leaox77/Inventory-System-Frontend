@@ -27,6 +27,7 @@ import {
   Person as PersonIcon,
   Brightness4 as Brightness4Icon,
   Brightness7 as Brightness7Icon,
+  Store as StoreIcon,
   Logout as LogoutIcon
 } from '@mui/icons-material'
 import { useAuth } from '../../contexts/AuthContext'
@@ -47,6 +48,7 @@ function Layout() {
     { text: 'Productos', icon: <InventoryIcon />, path: '/productos' },
     { text: 'Ventas', icon: <ShoppingCartIcon />, path: '/ventas' },
     { text: 'Proveedores', icon: <PersonIcon />, path: '/proveedores' },
+    { text: 'Sucursales', icon: <StoreIcon />, path: '/sucursales' },
   ]
 
   const handleDrawerToggle = () => {
