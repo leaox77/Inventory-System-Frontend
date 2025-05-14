@@ -6,7 +6,9 @@ import {
   Typography, 
   Paper, 
   Box,
-  Divider
+  Divider,
+  TextField,
+  MenuItem
 } from '@mui/material'
 import {
   TrendingUp as TrendingUpIcon,
@@ -55,38 +57,173 @@ function Dashboard() {
     lowStockCount: 0,
     salesByDate: [],
     salesByCategory: [],
-    salesByBranch: []
+    salesByBranch: [],
+    topProducts: [],
+    leastProducts: [],
+    branchSales: []
   })
+  const [sales, setSales] = useState([])
+
+  const [error, setError] = useState(null)
+  const [reportData, setReportData] = useState(null)
+  const [filters, setFilters] = useState({
+      dateRange: 'week',
+      status: 'all',
+      branch: 'all'
+    })
+  
+    useEffect(() => {
+      fetchReportData()
+    }, [])
+  
+   useEffect(() => {
+    const fetchInitialData = async () => {
+      try {
+        setLoading(true);
+        const [salesData, branchesData] = await Promise.all([
+          salesService.getSales()
+        ]);
+        setSales(salesData);
+        await fetchReportData();
+      } catch (err) {
+        console.error('Error al cargar datos iniciales:', err);
+        setError('Error al cargar los datos');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchInitialData();
+  }, []);
 
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        // En implementación real, obtendríamos estos datos con una sola llamada a un endpoint de dashboard
-        const [products, salesReport] = await Promise.all([
-          productService.getProducts(),
-          salesService.getSalesReport()
-        ])
-        
-        setDashboardData({
-          totalSales: salesReport.totalSales,
-          salesCount: salesReport.salesCount,
-          averageSale: salesReport.averageSale,
-          productsCount: products.length,
-          lowStockCount: products.filter(p => p.stock < 10).length,
-          salesByDate: salesReport.salesByDate,
-          salesByCategory: salesReport.salesByCategory,
-          salesByBranch: salesReport.salesByBranch
-        })
-      } catch (error) {
-        console.error('Error al cargar datos del dashboard:', error)
-      } finally {
-        setLoading(false)
-      }
-    }
+    // Modifica la función fetchData en tu Dashboard.jsx
+const fetchData = async () => {
+  try {
+    setLoading(true);
+    
+    // Obtener todos los datos necesarios en paralelo
+    const [
+      products, 
+      salesReport, 
+      salesSummary,
+      topProducts, 
+      leastProducts, 
+      branchSales
+    ] = await Promise.all([
+      productService.getProducts(),
+      salesService.getSalesReport(),
+      salesService.getSalesSummary(),
+      salesService.getTopProducts({ limit: 5 }),
+      salesService.getTopProducts({ limit: 5, order: 'asc' }),
+      salesService.getSalesByBranch('all')
+    ]);
+    
+    setDashboardData({
+      totalSales: salesSummary.totalSales,
+      salesCount: salesSummary.salesCount,
+      averageSale: salesSummary.averageSale,
+      productsCount: products.length,
+      lowStockCount: products.filter(p => p.stock < 10).length,
+      salesByDate: salesReport.salesByDate,
+      salesByCategory: salesReport.salesByCategory,
+      salesByBranch: salesReport.salesByBranch,
+      topProducts: topProducts,
+      leastProducts: leastProducts,
+      branchSales: branchSales
+    });
+    
+  } catch (error) {
+    console.error('Error al cargar datos del dashboard:', error);
+    setError('Error al cargar los datos del dashboard');
+  } finally {
+    setLoading(false);
+  }
+};
     
     fetchData()
   }, [])
+
+  const fetchReportData = async () => {
+    try {
+      setLoading(true)
+      
+      // Obtener datos para los reportes
+      const [byDate] = await Promise.all([
+        salesService.getSalesByDate(filters.dateRange),
+      ])
+      
+      // Calcular totales
+      const totalSales = byDate.reduce((sum, item) => sum + item.total, 0)
+      const salesCount = sales.length
+      
+      setReportData({
+        totalSales,
+        salesCount,
+        averageSale: salesCount ? totalSales / salesCount : 0,
+        salesByDate: byDate
+      })
+      
+    } catch (err) {
+      console.error('Error al obtener datos del reporte:', err)
+      // Puedes mostrar un mensaje de error más específico si lo deseas
+    } finally {
+      setLoading(false)
+    }
+  }
+  useEffect(() => {
+    if (filters.dateRange) {
+      fetchReportData()
+    }
+  }, [filters.dateRange])
+
+  const handleFilterChange = async (event) => {
+    const { name, value } = event.target;
+    
+    // Actualiza los filtros primero
+    const newFilters = {
+      ...filters,
+      [name]: value
+    };
+    setFilters(newFilters);
+  
+    // Si es el filtro de sucursal y no es "all", usa getSalesByBranch
+    if (name === 'branch' && value !== 'all') {
+      try {
+        setLoading(true);
+        const data = await salesService.getSalesByBranch(value);
+        setSales(data);
+      } catch (err) {
+        console.error('Error al filtrar por sucursal:', err);
+        setError(err.message || 'Error al filtrar ventas');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Para otros filtros o "all", usa el método normal
+      fetchSales(newFilters);
+    }
+  };
+  
+    // Configuración del gráfico de ventas por fecha
+  const salesChartData = {
+    labels: reportData?.salesByDate.map(item => {
+      const date = new Date(item.date)
+      return date.toLocaleDateString('es-MX', { 
+        month: 'short', 
+        day: 'numeric' 
+      })
+    }) || [],
+    datasets: [
+      {
+        label: 'Ventas Diarias',
+        data: reportData?.salesByDate.map(item => item.total) || [],
+        backgroundColor: 'rgba(25, 118, 210, 0.6)',
+        borderColor: 'rgba(25, 118, 210, 1)',
+        borderWidth: 1
+      }
+    ]
+  }
 
   // Configuración de gráficos
   const salesLineChartData = {
@@ -289,182 +426,194 @@ function Dashboard() {
           </Card>
         </Grid>
         
-        <Grid item xs={12} sm={6} lg={3}>
-          <Card 
-            elevation={2}
-            sx={{ 
-              height: '100%',
-              borderRadius: 2,
-              transition: 'transform 0.3s',
-              '&:hover': {
-                transform: 'translateY(-5px)'
-              }
-            }}
-          >
-            <CardContent>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <Box 
-                  sx={{ 
-                    backgroundColor: 'warning.light', 
-                    borderRadius: '50%',
-                    width: 40,
-                    height: 40,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    mr: 2
-                  }}
-                >
-                  <ShoppingCartIcon sx={{ color: 'white' }} />
-                </Box>
-                <Box>
-                  <Typography color="textSecondary" variant="body2" gutterBottom>
-                    Ventas de Hoy
-                  </Typography>
-                  <Typography variant="h5" component="div">
-                    2
-                  </Typography>
-                </Box>
-              </Box>
-              <Box sx={{ mt: 2, display: 'flex', alignItems: 'center' }}>
-                <Typography variant="body2" color="text.secondary">
-                  Total: $2,799.98
-                </Typography>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
+       
       </Grid>
       
       <Grid container spacing={3}>
-        <Grid item xs={12} lg={8}>
-          <Paper 
-            elevation={2}
-            sx={{ 
-              p: 3, 
-              height: '100%', 
-              borderRadius: 2,
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          >
-            <Typography variant="h6" gutterBottom component="div">
-              Ventas Diarias
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center' }}>
-              <Line 
-                data={salesLineChartData} 
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      ticks: {
-                        callback: function(value) {
-                          return '$' + value.toLocaleString('es-MX');
-                        }
-                      }
-                    }
-                  },
-                  plugins: {
-                    tooltip: {
-                      callbacks: {
-                        label: function(context) {
-                          return '$' + context.raw.toLocaleString('es-MX', { minimumFractionDigits: 2 });
-                        }
-                      }
-                    }
-                  }
-                }}
-                height={300}
-              />
-            </Box>
-          </Paper>
-        </Grid>
+        <Grid item xs={12} md={8}>
+                  <Paper
+                    elevation={2}
+                    sx={{ 
+                      p: 3, 
+                      height: '100%', 
+                      borderRadius: 2 
+                    }}
+                  >
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Typography variant="h6" gutterBottom component="div">
+                        Ventas por Día
+                      </Typography>
+                      <TextField
+                        select
+                        size="small"
+                        name="dateRange"
+                        value={filters.dateRange}
+                        onChange={handleFilterChange}
+                        sx={{ minWidth: 150 }}
+                      >
+                        <MenuItem value="week">Última Semana</MenuItem>
+                        <MenuItem value="month">Último Mes</MenuItem>
+                        <MenuItem value="year">Último Año</MenuItem>
+                      </TextField>
+                    </Box>
+                    <Box sx={{ height: 220 }}>
+                      <Bar 
+                        data={salesChartData}
+                        options={{
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          plugins: {
+                            legend: {
+                              display: false
+                            },
+                            tooltip: {
+                              callbacks: {
+                                label: function(context) {
+                                  return '$' + context.raw.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+                                }
+                              }
+                            }
+                          },
+                          scales: {
+                            y: {
+                              beginAtZero: true,
+                              ticks: {
+                                callback: function(value) {
+                                  return '$' + value.toLocaleString('es-MX');
+                                }
+                              }
+                            }
+                          }
+                        }}
+                      />
+                    </Box>
+                  </Paper>
+                </Grid>
         
         <Grid item xs={12} lg={4}>
-          <Paper 
-            elevation={2}
-            sx={{ 
-              p: 3, 
-              height: '100%', 
-              borderRadius: 2,
-              display: 'flex',
-              flexDirection: 'column'
-            }}
-          >
-            <Typography variant="h6" gutterBottom component="div">
-              Ventas por Categoría
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Doughnut 
-                data={salesCategoryChartData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  plugins: {
-                    tooltip: {
-                      callbacks: {
-                        label: function(context) {
-                          return '$' + context.raw.toLocaleString('es-MX', { minimumFractionDigits: 2 });
-                        }
-                      }
-                    }
-                  }
-                }}
-                height={300}
-              />
-            </Box>
-          </Paper>
-        </Grid>
+  <Paper 
+    elevation={2}
+    sx={{ 
+      p: 3, 
+      height: '100%', 
+      borderRadius: 2,
+      display: 'flex',
+      flexDirection: 'column'
+    }}
+  >
+    <Typography variant="h6" gutterBottom component="div">
+      Productos más vendidos
+    </Typography>
+    <Divider sx={{ mb: 2 }} />
+    <Box sx={{ mb: 3 }}>
+      {dashboardData.topProducts.map((product, index) => (
+        <Box key={index} sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          mb: 1,
+          p: 1,
+          backgroundColor: index % 2 === 0 ? 'action.hover' : 'background.paper',
+          borderRadius: 1
+        }}>
+          <Typography variant="body1">
+            {product.name}
+          </Typography>
+          <Typography variant="body1" fontWeight="bold">
+            {product.total_sold} unidades
+          </Typography>
+        </Box>
+      ))}
+    </Box>
+    
+    <Typography variant="h6" gutterBottom component="div">
+      Productos menos vendidos
+    </Typography>
+    <Divider sx={{ mb: 2 }} />
+    <Box>
+      {dashboardData.leastProducts.map((product, index) => (
+        <Box key={index} sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          mb: 1,
+          p: 1,
+          backgroundColor: index % 2 === 0 ? 'action.hover' : 'background.paper',
+          borderRadius: 1
+        }}>
+          <Typography variant="body1">
+            {product.name}
+          </Typography>
+          <Typography variant="body1" fontWeight="bold">
+            {product.total_sold} unidades
+          </Typography>
+        </Box>
+      ))}
+    </Box>
+  </Paper>
+</Grid>
         
         <Grid item xs={12}>
-          <Paper 
-            elevation={2}
-            sx={{ 
-              p: 3, 
-              borderRadius: 2, 
-              mt: 2 
-            }}
-          >
-            <Typography variant="h6" gutterBottom component="div">
-              Ventas por Sucursal
-            </Typography>
-            <Divider sx={{ mb: 2 }} />
-            <Box sx={{ height: 300 }}>
-              <Bar 
-                data={salesBranchChartData}
-                options={{
-                  responsive: true,
-                  maintainAspectRatio: false,
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                      ticks: {
-                        callback: function(value) {
-                          return '$' + value.toLocaleString('es-MX');
-                        }
-                      }
-                    }
-                  },
-                  plugins: {
-                    tooltip: {
-                      callbacks: {
-                        label: function(context) {
-                          return '$' + context.raw.toLocaleString('es-MX', { minimumFractionDigits: 2 });
-                        }
-                      }
-                    }
-                  }
-                }}
-                height={300}
-              />
-            </Box>
-          </Paper>
-        </Grid>
+  <Paper 
+    elevation={2}
+    sx={{ 
+      p: 3, 
+      borderRadius: 2, 
+      mt: 2 
+    }}
+  >
+    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <Typography variant="h6" gutterBottom component="div">
+        Ventas por Sucursal
+      </Typography>
+      <TextField
+        select
+        size="small"
+        name="branch"
+        value={filters.branch}
+        onChange={handleFilterChange}
+        sx={{ minWidth: 150 }}
+      >
+        <MenuItem value="all">Todas las sucursales</MenuItem>
+        {dashboardData.branchSales.map((branch) => (
+          <MenuItem key={branch.branch_id} value={branch.branch_id}>
+            {branch.branch_name}
+          </MenuItem>
+        ))}
+      </TextField>
+    </Box>
+    <Divider sx={{ mb: 2 }} />
+    <Box sx={{ height: 300 }}>
+      <Bar 
+        data={salesBranchChartData}
+        options={{
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: function(value) {
+                  return '$' + value.toLocaleString('es-MX');
+                }
+              }
+            }
+          },
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return '$' + context.raw.toLocaleString('es-MX', { minimumFractionDigits: 2 });
+                }
+              }
+            }
+          }
+        }}
+        height={300}
+      />
+    </Box>
+  </Paper>
+</Grid>
       </Grid>
     </>
   )

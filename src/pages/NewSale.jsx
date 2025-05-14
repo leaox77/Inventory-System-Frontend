@@ -62,7 +62,7 @@ const [productSearch, setProductSearch] = useState('')
 const fetchProducts = debounce(async (search) => {
   try {
     const data = await productService.getProducts({ 
-      limit: 20,
+      limit: 200,
       search 
     })
     setProducts(data.items)

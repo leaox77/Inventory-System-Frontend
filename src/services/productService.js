@@ -25,7 +25,7 @@ const productService = {
         items: Array.isArray(response.data.items) ? response.data.items : [],
         total: Number(response.data.total) || 0,
         skip: Number(response.data.skip) || 0,
-        limit: Number(response.data.limit) || (params.limit || 10)
+        limit: Number(response.data.limit) || (params.limit || 200)
       };
     } catch (error) {
       console.error('Error en productService.getProducts:', error);
