@@ -102,17 +102,20 @@ const salesService = {
   generateInvoice: async (id) => {
     try {
       const response = await api.get(`/sales/${id}/invoice`, {
-        responseType: 'blob'
-      })
-      return response.data
+        responseType: 'blob',
+        headers: {
+          'Accept': 'application/pdf'
+        }
+      });
+      return response.data;
     } catch (error) {
-      console.error('Error in salesService.generateInvoice:', error)
+      console.error('Error in salesService.generateInvoice:', error);
       throw error.response?.data?.detail || 
             error.response?.data?.message || 
             error.message || 
-            'Error generating invoice'
+            'Error generating invoice';
     }
-  },
+},
 
   // Get sales summary
   getSalesSummary: async ({ start_date, end_date, branch_id } = {}) => {
@@ -131,21 +134,27 @@ const salesService = {
   },
 
   // Export sales data
-  exportSales: async (format, { start_date, end_date, branch_id, status } = {}) => {
-    try {
-      const response = await api.get(`/sales/export/${format}`, {
-        params: { start_date, end_date, branch_id, status },
-        responseType: format === 'pdf' ? 'blob' : 'arraybuffer'
-      })
-      return response.data
-    } catch (error) {
-      console.error('Error in salesService.exportSales:', error)
-      throw error.response?.data?.detail || 
-            error.response?.data?.message || 
-            error.message || 
-            'Error exporting sales data'
-    }
-  },
+  // Método para exportar ventas
+exportSales: async (format, filters = {}) => {
+  try {
+    const response = await api.get(`/sales/export/${format}`, {
+      responseType: format === 'pdf' ? 'blob' : 'arraybuffer',
+      params: {
+        status: filters.status,
+        branch_id: filters.branch_id,
+        start_date: filters.start_date,
+        end_date: filters.end_date
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error in salesService.exportSales:', error);
+    throw error.response?.data?.detail || 
+          error.response?.data?.message || 
+          error.message || 
+          'Error exporting sales data';
+  }
+},
 
   // Get top products report
   getTopProducts: async ({ category_id, start_date, end_date, limit } = {}) => {

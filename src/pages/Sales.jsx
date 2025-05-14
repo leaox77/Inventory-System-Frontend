@@ -64,37 +64,6 @@ function SaleRow({ sale, onDelete }) {
     }
   };
 
-  const actions = [
-    {
-      icon: <VisibilityIcon fontSize="small" />,
-      color: 'primary',
-      handler: () => navigate(`/ventas/${sale.sale_id}`)
-    },
-    {
-      icon: <EditIcon fontSize="small" />,
-      color: 'secondary',
-      handler: () => navigate(`/ventas/editar/${sale.sale_id}`)
-    },
-    {
-      icon: <DeleteIcon fontSize="small" />,
-      color: 'error',
-      handler: async () => {
-        if (window.confirm('¿Estás seguro de eliminar esta venta?')) {
-          try {
-            await onDelete(sale.sale_id);
-          } catch (error) {
-            console.error('Error al eliminar venta:', error);
-          }
-        }
-      }
-    },
-    {
-      icon: <ReceiptIcon fontSize="small" />,
-      color: 'success',
-      handler: handleGenerateInvoice
-    }
-  ];
-
   const handleEdit = () => {
     navigate(`/ventas/editar/${sale.sale_id}`)
   }
@@ -172,12 +141,6 @@ function SaleRow({ sale, onDelete }) {
         </TableCell>
         <TableCell>{sale.branch?.name || 'Sucursal no especificada'}</TableCell>
         <TableCell align="center">
-          <IconButton size="small" color="primary" onClick={handleViewDetails}>
-            <VisibilityIcon fontSize="small" />
-          </IconButton>
-          <IconButton size="small" color="error" onClick={handleDelete}>
-            <DeleteIcon fontSize="small" />
-          </IconButton>
           <IconButton size="small" color="success" onClick={handleGenerateInvoice}>
             <ReceiptIcon fontSize="small" />
           </IconButton>
@@ -414,6 +377,37 @@ const salesChartData = {
     }
   ]
 }
+const handleExportSales = async (format = 'pdf') => {
+  try {
+    setLoading(true);
+    
+    // Preparar los filtros para la exportación
+    const exportFilters = {
+      status: filters.status !== 'all' ? filters.status : undefined,
+      branch_id: filters.branch !== 'all' ? filters.branch : undefined
+    };
+
+    const data = await salesService.exportSales(format, exportFilters);
+    
+    const blob = new Blob([data], {
+      type: format === 'pdf' ? 'application/pdf' : 'text/csv'
+    });
+    
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `reporte_ventas_${new Date().toISOString().slice(0,10)}.${format}`);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+    
+  } catch (error) {
+    console.error('Error al exportar ventas:', error);
+    setError(error.message || 'Error al exportar ventas');
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Paginación de ventas
   const paginatedSales = sales.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
@@ -582,8 +576,17 @@ const salesChartData = {
                 <Button 
                   variant="contained" 
                   startIcon={<DownloadIcon />}
+                  onClick={() => handleExportSales('pdf')}
+                  sx={{ mr: 1 }}
                 >
-                  Exportar
+                  PDF
+                </Button>
+                <Button 
+                  variant="contained" 
+                  startIcon={<DownloadIcon />}
+                  onClick={() => handleExportSales('csv')}
+                >
+                  CSV
                 </Button>
               </Box>
             </Box>
