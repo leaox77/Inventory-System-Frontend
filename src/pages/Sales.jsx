@@ -64,20 +64,6 @@ function SaleRow({ sale, onDelete }) {
     }
   };
 
-  const handleEdit = () => {
-    navigate(`/ventas/editar/${sale.sale_id}`)
-  }
-
-  const handleDelete = async () => {
-    if (window.confirm('¿Estás seguro de eliminar esta venta?')) {
-      try {
-        await onDelete(sale.sale_id) // Usamos la prop onDelete
-      } catch (error) {
-        console.error('Error al eliminar venta:', error)
-      }
-    }
-  }
-
   const getStatusInfo = (status) => {
     if (typeof status === 'object') {
       return {
@@ -98,8 +84,6 @@ function SaleRow({ sale, onDelete }) {
 
   // En tu componente:
   const statusInfo = getStatusInfo(sale.status);
-
-  
 
   return (
     <>
@@ -251,15 +235,18 @@ function Sales() {
   fetchBranches();
 }, []);
 
-const fetchSales = async () => {
+const fetchSales = async (filtersToUse = filters) => {
   try {
     setLoading(true);
     const params = {
-      status: filters.status !== 'all' ? filters.status : undefined,
-      branch_id: filters.branch !== 'all' ? filters.branch : undefined,
+      status: filtersToUse.status !== 'all' ? filtersToUse.status : undefined,
+      branch_id: filtersToUse.branch !== 'all' ? filtersToUse.branch : undefined,
       skip: page * rowsPerPage,
       limit: rowsPerPage
     };
+    
+    // Elimina parámetros undefined
+    Object.keys(params).forEach(key => params[key] === undefined && delete params[key]);
     
     const data = await salesService.getSales(params);
     setSales(data);
@@ -332,30 +319,10 @@ useEffect(() => {
 
   const handleFilterChange = async (event) => {
   const { name, value } = event.target;
-  
-  // Actualiza los filtros primero
-  const newFilters = {
-    ...filters,
-    [name]: value
-  };
+  const newFilters = { ...filters, [name]: value };
   setFilters(newFilters);
-
-  // Si es el filtro de sucursal y no es "all", usa getSalesByBranch
-  if (name === 'branch' && value !== 'all') {
-    try {
-      setLoading(true);
-      const data = await salesService.getSalesByBranch(value);
-      setSales(data);
-    } catch (err) {
-      console.error('Error al filtrar por sucursal:', err);
-      setError(err.message || 'Error al filtrar ventas');
-    } finally {
-      setLoading(false);
-    }
-  } else {
-    // Para otros filtros o "all", usa el método normal
-    fetchSales(newFilters);
-  }
+  setPage(0); // Resetear a la primera página al cambiar filtros
+  await fetchSales(newFilters);
 };
 
   // Configuración del gráfico de ventas por fecha
@@ -541,19 +508,6 @@ const handleExportSales = async (format = 'pdf') => {
                 <TextField
                   select
                   size="small"
-                  name="status"
-                  label="Estado"
-                  value={filters.status}
-                  onChange={handleFilterChange}
-                  sx={{ minWidth: 150 }}
-                >
-                  <MenuItem value="all">Todos</MenuItem>
-                  <MenuItem value="completed">Completadas</MenuItem>
-                  <MenuItem value="pending">Pendientes</MenuItem>
-                </TextField>
-                <TextField
-                  select
-                  size="small"
                   name="branch"
                   label="Sucursal"
                   value={filters.branch}
@@ -567,12 +521,6 @@ const handleExportSales = async (format = 'pdf') => {
                       </MenuItem>
                     ))}
                 </TextField>
-                <Button 
-                  variant="outlined"
-                  startIcon={<FilterListIcon />}
-                >
-                  Filtrar
-                </Button>
                 <Button 
                   variant="contained" 
                   startIcon={<DownloadIcon />}

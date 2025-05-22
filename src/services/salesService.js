@@ -5,37 +5,34 @@ const salesService = {
   // Obtener todas las ventas
   // Get all sales with filters
   getSales: async (params = {}) => {
-    try {
-      // Clean parameters
-      const cleanParams = {
-        status: params.status !== 'all' ? params.status : undefined,
-        branch_id: params.branch_id !== 'all' ? params.branch_id : undefined,
-        skip: params.skip,
-        limit: params.limit
-      }
-      
-      const response = await api.get('/sales', { params: cleanParams });
-      return response.data.map(sale => ({
-        ...sale,
-        client: {
-          full_name: sale.client?.full_name || 'Cliente no especificado',
-          ci_nit: sale.client?.ci_nit || 'N/A'
-        },
-        branch: {
-          name: sale.branch?.name || 'Sucursal no especificada'
-        },
-        status: sale.status?.label || sale.status || 'COMPLETADA',
-        payment_method: sale.payment_method?.name || 'Método de pago no especificado',
-      }));
-    } catch (error) {
-      console.error('Error in salesService.getSales:', error);
-      throw error.response?.data?.detail || 
-            error.response?.data?.message || 
-            error.message || 
-            'Error fetching sales';
-    }
-  },
-
+  try {
+    // Limpia parámetros undefined
+    const cleanParams = Object.fromEntries(
+      Object.entries(params)
+        .filter(([_, v]) => v !== undefined && v !== 'all')
+    );
+    
+    const response = await api.get('/sales', { params: cleanParams });
+    return response.data.map(sale => ({
+      ...sale,
+      client: {
+        full_name: sale.client?.full_name || 'Cliente no especificado',
+        ci_nit: sale.client?.ci_nit || 'N/A'
+      },
+      branch: {
+        name: sale.branch?.name || 'Sucursal no especificada'
+      },
+      status: sale.status?.label || sale.status || 'COMPLETADA',
+      payment_method: sale.payment_method?.name || 'Método de pago no especificado',
+    }));
+  } catch (error) {
+    console.error('Error in salesService.getSales:', error);
+    throw error.response?.data?.detail || 
+          error.response?.data?.message || 
+          error.message || 
+          'Error fetching sales';
+  }
+},
   // Get a single sale by ID
   getSale: async (id) => {
     try {
@@ -54,8 +51,6 @@ const salesService = {
     const response = await api.get('/payment-methods');
     return response.data;
   },
-
-
   // Create a new sale
   createSale: async (saleData) => {
     try {
@@ -83,7 +78,6 @@ const salesService = {
             'Error updating sale'
     }
   },
-
   // Delete a sale
   deleteSale: async (id) => {
     try {
@@ -97,7 +91,6 @@ const salesService = {
             'Error deleting sale'
     }
   },
-
   // Generate invoice PDF
   generateInvoice: async (id) => {
     try {
@@ -116,7 +109,6 @@ const salesService = {
             'Error generating invoice';
     }
 },
-
   // Get sales summary
   getSalesSummary: async ({ start_date, end_date, branch_id } = {}) => {
     try {
@@ -132,7 +124,6 @@ const salesService = {
             'Error fetching sales summary'
     }
   },
-
   // Export sales data
   // Método para exportar ventas
 exportSales: async (format, filters = {}) => {
@@ -171,7 +162,6 @@ exportSales: async (format, filters = {}) => {
             'Error fetching top products report'
     }
   },
-
   // Get sales by date
   getSalesByDate: async (dateRange = 'week') => {
     try {
