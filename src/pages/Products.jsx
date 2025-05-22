@@ -34,6 +34,8 @@ import AlertMessage from '../components/ui/AlertMessage'
 import ConfirmDialog from '../components/ui/ConfirmDialog'
 import productService from '../services/productService'
 import authService from '../services/authService'
+import ProtectedButton from '../components/ui/ProtectedButton'
+import { useAuth } from '../contexts/AuthContext'
 
 function Products() {
   const [products, setProducts] = useState([])
@@ -234,14 +236,34 @@ function Products() {
     return product.stock || 0;
   };
 
+  const { currentUser } = useAuth();
+
+  const hasAnyActionPermission = () => {
+    if (!currentUser) return false;
+    // Lista de permisos requeridos para las acciones en esta tabla
+    const requiredPermissions = ['reports', 'all'];
+    
+    // Verifica si el usuario tiene al menos uno de los permisos requeridos
+    return requiredPermissions.some(
+      permission => currentUser.permissions?.[permission] === true
+    );
+  };
+
   return (
     <>
       <PageHeader 
         title="Productos" 
         subtitle="Gestiona el inventario de productos"
-        action={handleAddProduct}
-        actionLabel="Nuevo Producto"
-        actionIcon={<AddIcon />}
+        action={
+          hasAnyActionPermission() ? handleAddProduct : undefined
+        }
+        actionLabel={
+          hasAnyActionPermission() ? "Nuevo Producto" : undefined
+        }
+        actionIcon={
+          hasAnyActionPermission() ? <AddIcon /> : undefined
+        }
+        
         breadcrumbs={[
           { label: 'Dashboard', path: '/' },
           { label: 'Productos' }
@@ -355,14 +377,6 @@ function Products() {
                   <RefreshIcon />
                 </IconButton>
               </Tooltip>
-              <Button
-                variant="contained"
-                startIcon={<AddIcon />}
-                onClick={handleAddProduct}
-                sx={{ ml: 1 }}
-              >
-                Nuevo
-              </Button>
             </Box>
           </Grid>
         </Grid>
@@ -382,7 +396,9 @@ function Products() {
                   <TableCell align="right">Precio</TableCell>
                   <TableCell align="right">Stock</TableCell>
                   <TableCell>Unidad</TableCell>
-                  <TableCell align="center">Acciones</TableCell>
+                  {hasAnyActionPermission() && (
+                    <TableCell align="center">Acciones</TableCell>
+                  )}
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -444,26 +460,25 @@ function Products() {
                           />
                         </TableCell>
                         <TableCell>{unitTypes.find(u => u.id === product.unit_type)?.name || product.unit_type }</TableCell>
-                        <TableCell align="center">
-                          <Tooltip title="Editar">
-                            <IconButton 
-                              size="small" 
-                              color="primary"
-                              onClick={() => handleEditProduct(product.product_id || product.id)}
-                            >
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="Eliminar">
-                            <IconButton 
-                              size="small" 
-                              color="error"
-                              onClick={() => handleDeleteConfirm(product.product_id || product.id)}
-                            >
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </TableCell>
+                        {hasAnyActionPermission() && (
+                          <TableCell align="center">
+                            <Box sx={{ display: 'flex', justifyContent: 'center', gap: 1 }}>
+                              <ProtectedButton
+                                permission="reports"
+                                tooltip="Editar"
+                                onClick={() => handleEditProduct(product.product_id || product.id)}
+                                icon={<EditIcon fontSize="small" />}
+                              />
+                              <ProtectedButton
+                                permission="all"
+                                tooltip="Eliminar"
+                                onClick={() => handleDeleteProduct(product.product_id || product.id)}
+                                icon={<DeleteIcon fontSize="small" />}
+                                color="error"
+                              />
+                            </Box>
+                          </TableCell>
+                        )}
                       </TableRow>
                     )
                   })

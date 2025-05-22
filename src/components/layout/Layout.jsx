@@ -52,7 +52,7 @@ function Layout() {
   { text: 'Ventas', icon: <ShoppingCartIcon />, path: '/ventas', permission: 'sales' },
   { text: 'Proveedores', icon: <BusinessIcon />, path: '/proveedores', permission: 'inventory' },
   { text: 'Sucursales', icon: <StoreIcon />, path: '/sucursales', permission: 'reports' },
-  { text: 'Clientes', icon: <PersonIcon />, path: '/clientes', permission: 'reports' },
+  { text: 'Clientes', icon: <PersonIcon />, path: '/clientes', permission: 'sales' },
   { text: 'Usuarios', icon: <PeopleAltIcon />, path: '/usuarios', permission: 'all' }
 ]
 

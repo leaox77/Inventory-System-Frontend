@@ -138,12 +138,12 @@ function App() {
           
           {/* Clientes - Requiere permiso 'reports' */}
           <Route path="clientes" element={
-            <ProtectedRoute requiredPermission="reports">
+            <ProtectedRoute requiredPermission="sales">
               <ClientsPage />
             </ProtectedRoute>
           } />
           <Route path="clientes/nuevo" element={
-            <ProtectedRoute requiredPermission="reports">
+            <ProtectedRoute requiredPermission="sales">
               <ClientForm />
             </ProtectedRoute>
           } />

@@ -6,6 +6,7 @@ import { Add, Edit, Delete, Inventory } from '@mui/icons-material';
 import { getSuppliers, deleteSupplier } from '../services/supplierService';
 import SupplierForm from '../components/ui/SupplierForm';
 import PurchaseOrderModal from '../components/ui/PurcharseOrderModal';
+import { useAuth } from '../contexts/AuthContext';
 
 const SuppliersPage = () => {
   const [suppliers, setSuppliers] = useState([]);
@@ -29,6 +30,22 @@ const SuppliersPage = () => {
     }
   };
 
+  const { currentUser } = useAuth();
+  
+    const hasAnyActionPermission = () => {
+      if (!currentUser) return false;
+      // Lista de permisos requeridos para las acciones en esta tabla
+      const requiredPermissions = ['reports', 'all'];
+      
+      // Verifica si el usuario tiene al menos uno de los permisos requeridos
+      return requiredPermissions.some(
+        permission => currentUser.permissions?.[permission] === true
+      );
+    };
+
+  const canEdit = () => currentUser?.permissions?.all === true || currentUser?.permissions?.reports === true;
+  const canDelete = () => currentUser?.permissions?.all === true;
+
   const columns = [
     { field: 'supplier_id', headerName: 'ID', width: 70 },
     { field: 'name', headerName: 'Nombre', flex: 1 },
@@ -41,15 +58,23 @@ const SuppliersPage = () => {
       width: 200,
       renderCell: (params) => (
         <div>
-          <IconButton onClick={() => {
-            setCurrentSupplier(params.row);
-            setOpenForm(true);
-          }}>
-            <Edit />
-          </IconButton>
-          <IconButton onClick={() => handleDelete(params.row.supplier_id)}>
-            <Delete />
-          </IconButton>
+          {canEdit() && (
+            <IconButton onClick={() => {
+              setCurrentSupplier(params.row);
+              setOpenForm(true);
+            }}>
+              <Edit 
+                color="primary"
+              />
+            </IconButton>
+          )}
+          {canDelete() && (
+            <IconButton onClick={() => handleDelete(params.row.supplier_id)}>
+              <Delete 
+                color="error"
+              />
+            </IconButton>
+          )}
           <IconButton 
             onClick={() => setOpenOrderModal(params.row.supplier_id)}
             color="primary"
@@ -64,16 +89,19 @@ const SuppliersPage = () => {
   return (
     <Box sx={{ height: 600, width: '100%' }}>
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => {
-            setCurrentSupplier(null);
-            setOpenForm(true);
-          }}
-        >
-          Nuevo Proveedor
-        </Button>
+        
+        {hasAnyActionPermission() && (
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => {
+              setCurrentSupplier(null);
+              setOpenForm(true);
+            }}
+          >
+            Nuevo Proveedor
+          </Button>
+        )}
       </Box>
       
       <DataGrid

@@ -7,6 +7,7 @@ import {
 } from '@mui/material'
 import { Add, Edit, Delete } from '@mui/icons-material'
 import * as branchService from '../services/branchService'
+import { useAuth } from '../contexts/AuthContext'
 
 const BranchesPage = () => {
   const [branches, setBranches] = useState([])
@@ -43,6 +44,23 @@ const BranchesPage = () => {
     }
   }
 
+  const { currentUser } = useAuth();
+    
+      const hasAnyActionPermission = () => {
+        if (!currentUser) return false;
+        // Lista de permisos requeridos para las acciones en esta tabla
+        const requiredPermissions = ['reports', 'all'];
+        
+        // Verifica si el usuario tiene al menos uno de los permisos requeridos
+        return requiredPermissions.some(
+          permission => currentUser.permissions?.[permission] === true
+        );
+      };
+  
+    const canEdit = () => currentUser?.permissions?.all === true || currentUser?.permissions?.reports === true;
+    const canDelete = () => currentUser?.permissions?.all === true;
+  
+
   const handleCloseSnackbar = () => {
     setError(null)
     setSuccess(null)
@@ -55,13 +73,15 @@ const BranchesPage = () => {
     <Container maxWidth="lg">
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
         <Typography variant="h4">Sucursales</Typography>
-        <Button 
-          variant="contained" 
-          startIcon={<Add />}
-          onClick={() => navigate('/sucursales/nueva')}
-        >
-          Nueva Sucursal
-        </Button>
+        { hasAnyActionPermission() && (
+          <Button 
+            variant="contained" 
+            startIcon={<Add />}
+            onClick={() => navigate('/sucursales/nueva')}
+          >
+            Nueva Sucursal
+          </Button>
+        )}
       </Box>
 
       <TableContainer component={Paper}>
@@ -72,7 +92,9 @@ const BranchesPage = () => {
               <TableCell>Dirección</TableCell>
               <TableCell>Teléfono</TableCell>
               <TableCell>Horario</TableCell>
-              <TableCell>Acciones</TableCell>
+              { hasAnyActionPermission() && (
+                <TableCell>Acciones</TableCell>
+              )}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -83,18 +105,22 @@ const BranchesPage = () => {
                 <TableCell>{branch.phone || '-'}</TableCell>
                 <TableCell>{branch.opening_hours || '-'}</TableCell>
                 <TableCell>
-                  <IconButton 
-                    color="primary" 
-                    onClick={() => navigate(`/sucursales/editar/${branch.branch_id}`)}
-                  >
-                    <Edit />
-                  </IconButton>
-                  <IconButton 
-                    color="error" 
-                    onClick={() => handleDelete(branch.branch_id)}
-                  >
-                    <Delete />
-                  </IconButton>
+                  { canEdit() && (
+                    <IconButton 
+                      color="primary" 
+                      onClick={() => navigate(`/sucursales/editar/${branch.branch_id}`)}
+                    >
+                      <Edit />
+                    </IconButton>
+                  )}
+                  { canDelete() && (
+                    <IconButton 
+                      color="error" 
+                      onClick={() => handleDelete(branch.branch_id)}
+                    >
+                      <Delete />
+                    </IconButton>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
