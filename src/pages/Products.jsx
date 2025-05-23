@@ -335,6 +335,27 @@ function Products() {
             </Box>
           </Grid>
 
+          <Grid item xs={6} sm={3} md={2}>
+            <TextField
+              select
+              fullWidth
+              variant="outlined"
+              size="small"
+              name="branch_id"
+              label={isMobile ? "Sucursal" : "Sucursal"}
+              value={filters.branch_id}
+              onChange={handleFilterChange}
+              disabled={branches.length === 0}
+            >
+              <MenuItem value="">Todas</MenuItem>
+              {branches.map((branch) => (
+                <MenuItem key={branch.id} value={branch.id}>
+                  {isMobile ? branch.name.substring(0, 10) + (branch.name.length > 10 ? '...' : '') : branch.name}
+                </MenuItem>
+              ))}
+            </TextField>
+          </Grid>
+
           {isMobile && (
             <Grid item xs={12}>
               <Box display="flex" justifyContent="flex-end">
