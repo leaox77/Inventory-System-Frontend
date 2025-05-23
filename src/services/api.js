@@ -2,6 +2,7 @@ import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://inventory-system-backend-96qt.onrender.com/api/v1'
 
+
 const api = axios.create({
   baseURL: API_URL,
   headers: {
