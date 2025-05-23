@@ -2,14 +2,11 @@ import axios from 'axios'
 
 const API_URL = import.meta.env.VITE_API_URL || 'https://inventory-system-backend-96qt.onrender.com/api/v1'
 
-
 const api = axios.create({
   baseURL: API_URL,
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 60000, // Tiempo de espera de 10 segundos
-  withCredentials: true, // Permitir cookies de terceros
 })
 
 // Interceptor de solicitudes para agregar el token
