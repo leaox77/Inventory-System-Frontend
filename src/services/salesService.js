@@ -147,7 +147,21 @@ exportSales: async (format, filters = {}) => {
   }
 },
 
-  
+  // Get top products report
+  getTopProducts: async ({ category_id, start_date, end_date, limit } = {}) => {
+    try {
+      const response = await api.get('/sales/report/top-products', { 
+        params: { category_id, start_date, end_date, limit } 
+      })
+      return response.data
+    } catch (error) {
+      console.error('Error in salesService.getTopProducts:', error)
+      throw error.response?.data?.detail || 
+            error.response?.data?.message || 
+            error.message || 
+            'Error fetching top products report'
+    }
+  },
   // Get sales by date
   getSalesByDate: async (dateRange = 'week') => {
     try {
