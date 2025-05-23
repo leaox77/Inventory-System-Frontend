@@ -7,6 +7,8 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 10000, // Tiempo de espera de 10 segundos
+  withCredentials: true, // Permitir cookies de terceros
 })
 
 // Interceptor de solicitudes para agregar el token
