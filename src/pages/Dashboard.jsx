@@ -41,10 +41,6 @@ ChartJS.register(
 
 function Dashboard() {
   const [loading, setLoading] = useState(true)
-  const [dashboardData, setDashboardData] = useState({
-    topProducts: [],
-    branchSales: []
-  })
   const [error, setError] = useState(null)
   
   const theme = useTheme()
