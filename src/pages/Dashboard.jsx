@@ -51,47 +51,6 @@ function Dashboard() {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
   const isTablet = useMediaQuery(theme.breakpoints.between('sm', 'md'))
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        const [
-          topProducts, 
-          branchSales
-        ] = await Promise.all([
-          salesService.getTopProducts({ limit: 3 }),
-          salesService.getSalesByBranch('all')
-        ]);
-        
-        setDashboardData({
-          topProducts: topProducts,
-          branchSales: branchSales
-        });
-        
-      } catch (error) {
-        console.error('Error al cargar datos del dashboard:', error);
-        setError('Error al cargar los datos del dashboard');
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData()
-  }, [])
-
-  const salesBranchChartData = {
-    labels: dashboardData.branchSales.map(item => item.branch_name),
-    datasets: [
-      {
-        label: 'Ventas por Sucursal',
-        data: dashboardData.branchSales.map(item => item.total_sales),
-        backgroundColor: '#FF8F00',
-        borderRadius: 4
-      }
-    ]
-  }
-
   if (loading) {
     return <LoadingIndicator message="Cargando dashboard..." />
   }
