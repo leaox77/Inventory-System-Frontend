@@ -1,10 +1,10 @@
 // src/components/PurchaseOrderModal.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
-  Dialog, DialogTitle, DialogContent, DialogActions, 
-  Button, TextField, Select, MenuItem, InputLabel, 
-  FormControl, Grid, Table, TableBody, TableCell, 
-  TableContainer, TableHead, TableRow, Paper, IconButton, Typography, Autocomplete, Alert
+    Dialog, DialogTitle, DialogContent, DialogActions, 
+    Button, TextField, Select, MenuItem, InputLabel, 
+    FormControl, Grid, Table, TableBody, TableCell, 
+    TableContainer, TableHead, TableRow, Paper, IconButton, Typography, Autocomplete, Alert
 } from '@mui/material';
 import { Add, Delete } from '@mui/icons-material';
 import { getSupplierProducts, createPurchaseOrder } from '../../services/supplierService';
@@ -165,7 +165,7 @@ async function verifyInventoryUpdate(branchId, productIds) {
         setSelectedProduct(newValue);
     };
 
-  return (
+    return (
         <Dialog open={open} onClose={() => onClose(false)} maxWidth="md" fullWidth>
             <DialogTitle>Nuevo Pedido a Proveedor</DialogTitle>
             <DialogContent>
@@ -269,23 +269,25 @@ async function verifyInventoryUpdate(branchId, productIds) {
                     </Grid>
 
                     <Grid item xs={12}>
-                        <TableContainer component={Paper}>
-                            <Table>
+                        <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
+                            <Table sx={{ minWidth: 650 }}>
+                                {/* Remove any whitespace here */}
                                 <TableHead>
                                     <TableRow>
-                                        <TableCell>Producto</TableCell>
-                                        <TableCell align="right">Cantidad</TableCell>
-                                        <TableCell align="right">Costo Unitario</TableCell>
-                                        <TableCell align="right">Acciones</TableCell>
+                                        <TableCell sx={{ whiteSpace: 'nowrap' }}>Producto</TableCell>
+                                        <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>Cantidad</TableCell>
+                                        <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>Costo Unitario</TableCell>
+                                        <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>Acciones</TableCell>
                                     </TableRow>
                                 </TableHead>
+                                {/* Remove any whitespace here */}
                                 <TableBody>
                                     {orderItems.map((item, index) => (
                                         <TableRow key={`order-item-${index}`}>
-                                            <TableCell>{item.product_name}</TableCell>
-                                            <TableCell align="right">{item.quantity}</TableCell>
-                                            <TableCell align="right">${item.unit_cost?.toFixed(2)}</TableCell>
-                                            <TableCell align="right">
+                                            <TableCell sx={{ whiteSpace: 'nowrap' }}>{item.product_name}</TableCell>
+                                            <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>{item.quantity}</TableCell>
+                                            <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>${item.unit_cost?.toFixed(2)}</TableCell>
+                                            <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                                                 <IconButton onClick={() => handleRemoveItem(index)}>
                                                     <Delete />
                                                 </IconButton>
@@ -295,15 +297,16 @@ async function verifyInventoryUpdate(branchId, productIds) {
                                     {orderItems.length > 0 && (
                                         <TableRow>
                                             <TableCell colSpan={2} />
-                                            <TableCell align="right">
+                                            <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                                                 <strong>Total:</strong>
                                             </TableCell>
-                                            <TableCell align="right">
+                                            <TableCell align="right" sx={{ whiteSpace: 'nowrap' }}>
                                                 <strong>${totalAmount.toFixed(2)}</strong>
                                             </TableCell>
                                         </TableRow>
                                     )}
                                 </TableBody>
+                                {/* Remove any whitespace here */}
                             </Table>
                         </TableContainer>
                     </Grid>
@@ -318,6 +321,5 @@ async function verifyInventoryUpdate(branchId, productIds) {
         </Dialog>
     );
 };
-
 
 export default PurchaseOrderModal;

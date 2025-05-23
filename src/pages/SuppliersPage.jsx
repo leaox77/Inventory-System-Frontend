@@ -7,6 +7,7 @@ import { getSuppliers, deleteSupplier } from '../services/supplierService';
 import SupplierForm from '../components/ui/SupplierForm';
 import PurchaseOrderModal from '../components/ui/PurcharseOrderModal';
 import { useAuth } from '../contexts/AuthContext';
+import PageHeader from '../components/ui/PageHeader';
 
 const SuppliersPage = () => {
   const [suppliers, setSuppliers] = useState([]);
@@ -88,6 +89,14 @@ const SuppliersPage = () => {
 
   return (
     <Box sx={{ height: 600, width: '100%' }}>
+      <PageHeader
+        title="Proveedores"
+        subtitle="Lista de proveedores"
+        breadcrumbs={[
+          { label: 'Dashboard', path: '/' },
+          { label: 'Proveedores' }
+        ]}
+      />
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
         
         {hasAnyActionPermission() && (

@@ -9,29 +9,44 @@ export default {
     extend: {
       colors: {
         primary: {
-          light: '#4791db',
-          main: '#1976D2',
-          dark: '#115293',
+          light: '#FFA726',  // Naranja claro (promociones)
+          main: '#FF8F00',    // Naranja vibrante
+          dark: '#F57C00',    // Naranja intenso
         },
         secondary: {
-          light: '#33ab9f',
-          main: '#009688',
-          dark: '#00695f',
+          light: '#66BB6A',   // Verde fresco (productos naturales)
+          main: '#4CAF50',    // Verde estándar
+          dark: '#388E3C',    // Verde intenso
+        },
+        accent: {
+          light: '#BA68C8',   // Morado claro (frescura)
+          main: '#9C27B0',    // Morado medio
+          dark: '#7B1FA2',    // Morado intenso
+        },
+        highlight: {
+          light: '#FF80AB',   // Rosado suave (ofertas)
+          main: '#FF4081',    // Rosado medio
+          dark: '#F50057',    // Rosado intenso
+        },
+        special: {
+          light: '#BA68C8',   // Morado suave (productos premium)
+          main: '#9C27B0',    // Morado estándar
+          dark: '#7B1FA2',    // Morado intenso
         },
         success: {
-          light: '#81c784',
-          main: '#4CAF50',
-          dark: '#388e3c',
+          light: '#81C784',   // Verde claro (éxito)
+          main: '#4CAF50',     // Verde estándar
+          dark: '#388E3C',     // Verde intenso
         },
         warning: {
-          light: '#ffb74d',
-          main: '#FF9800',
-          dark: '#f57c00',
+          light: '#FFD54F',    // Amarillo claro (alerta)
+          main: '#FFC107',     // Amarillo vibrante
+          dark: '#FFA000',     // Amarillo intenso
         },
         error: {
-          light: '#e57373',
-          main: '#F44336',
-          dark: '#d32f2f',
+          light: '#E57373',    // Rojo claro (error)
+          main: '#F44336',     // Rojo estándar
+          dark: '#D32F2F',     // Rojo intenso
         },
       },
     },

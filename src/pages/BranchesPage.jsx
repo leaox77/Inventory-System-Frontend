@@ -1,127 +1,184 @@
-import React, { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { 
-  Box, Button, Container, Paper, Table, TableBody, 
-  TableCell, TableContainer, TableHead, TableRow, 
-  Typography, IconButton, Alert, Snackbar
-} from '@mui/material'
-import { Add, Edit, Delete } from '@mui/icons-material'
-import * as branchService from '../services/branchService'
-import { useAuth } from '../contexts/AuthContext'
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Box, Button, Container, Paper, Table, TableBody,
+  TableCell, TableContainer, TableHead, TableRow,
+  Typography, IconButton, Alert, Snackbar, Stack
+} from '@mui/material';
+import { Add, Edit, Delete } from '@mui/icons-material';
+import * as branchService from '../services/branchService';
+import { useAuth } from '../contexts/AuthContext';
 
 const BranchesPage = () => {
-  const [branches, setBranches] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [success, setSuccess] = useState(null)
-  const navigate = useNavigate()
+  const [branches, setBranches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    fetchBranches()
-  }, [])
+    fetchBranches();
+  }, []);
 
   const fetchBranches = async () => {
     try {
-      setLoading(true)
-      const data = await branchService.getBranches()
-      setBranches(data)
+      setLoading(true);
+      const data = await branchService.getBranches();
+      setBranches(data);
     } catch (err) {
-      setError(err.message)
+      setError(err.message);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleDelete = async (branchId) => {
     if (window.confirm('¿Estás seguro de eliminar esta sucursal?')) {
       try {
-        await branchService.deleteBranch(branchId)
-        setBranches(branches.filter(b => b.branch_id !== branchId))
-        setSuccess('Sucursal eliminada correctamente')
+        await branchService.deleteBranch(branchId);
+        setBranches(branches.filter(b => b.branch_id !== branchId));
+        setSuccess('Sucursal eliminada correctamente');
       } catch (err) {
-        setError(err.message)
+        setError(err.message);
       }
     }
-  }
+  };
 
   const { currentUser } = useAuth();
-    
-      const hasAnyActionPermission = () => {
-        if (!currentUser) return false;
-        // Lista de permisos requeridos para las acciones en esta tabla
-        const requiredPermissions = ['reports', 'all'];
-        
-        // Verifica si el usuario tiene al menos uno de los permisos requeridos
-        return requiredPermissions.some(
-          permission => currentUser.permissions?.[permission] === true
-        );
-      };
-  
-    const canEdit = () => currentUser?.permissions?.all === true || currentUser?.permissions?.reports === true;
-    const canDelete = () => currentUser?.permissions?.all === true;
-  
+
+  const hasAnyActionPermission = () => {
+    if (!currentUser) return false;
+    const requiredPermissions = ['reports', 'all'];
+    return requiredPermissions.some(
+      permission => currentUser.permissions?.[permission] === true
+    );
+  };
+
+  const canEdit = () =>
+    currentUser?.permissions?.all === true || currentUser?.permissions?.reports === true;
+  const canDelete = () => currentUser?.permissions?.all === true;
 
   const handleCloseSnackbar = () => {
-    setError(null)
-    setSuccess(null)
-  }
+    setError(null);
+    setSuccess(null);
+  };
 
-  if (loading) return <Typography>Cargando sucursales...</Typography>
-  if (error) return <Alert severity="error">{error}</Alert>
+  if (loading) return <Typography>Cargando sucursales...</Typography>;
+  if (error) return <Alert severity="error">{error}</Alert>;
 
   return (
     <Container maxWidth="lg">
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: { xs: 'column', sm: 'row' },
+          justifyContent: 'space-between',
+          alignItems: { xs: 'flex-start', sm: 'center' },
+          mb: 3,
+          gap: 2
+        }}
+      >
         <Typography variant="h4">Sucursales</Typography>
-        { hasAnyActionPermission() && (
-          <Button 
-            variant="contained" 
+        {hasAnyActionPermission() && (
+          <Button
+            variant="contained"
             startIcon={<Add />}
             onClick={() => navigate('/sucursales/nueva')}
+            sx={{ width: { xs: '100%', sm: 'auto' } }}
           >
             Nueva Sucursal
           </Button>
         )}
       </Box>
 
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer component={Paper} sx={{ width: '100%', overflowX: 'auto' }}>
+        <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Nombre</TableCell>
-              <TableCell>Dirección</TableCell>
-              <TableCell>Teléfono</TableCell>
-              <TableCell>Horario</TableCell>
-              { hasAnyActionPermission() && (
-                <TableCell>Acciones</TableCell>
+              <TableCell sx={{ minWidth: 100 }}>Nombre</TableCell>
+              <TableCell sx={{ minWidth: 150 }}>Dirección</TableCell>
+              <TableCell sx={{ display: { xs: 'none', sm: 'table-cell' }, minWidth: 100 }}>
+                Teléfono
+              </TableCell>
+              <TableCell sx={{ display: { xs: 'none', md: 'table-cell' }, minWidth: 120 }}>
+                Horario
+              </TableCell>
+              {hasAnyActionPermission() && (
+                <TableCell sx={{ minWidth: 100 }}>Acciones</TableCell>
               )}
             </TableRow>
           </TableHead>
           <TableBody>
             {branches.map((branch) => (
               <TableRow key={branch.branch_id}>
-                <TableCell>{branch.name}</TableCell>
-                <TableCell>{branch.address}</TableCell>
-                <TableCell>{branch.phone || '-'}</TableCell>
-                <TableCell>{branch.opening_hours || '-'}</TableCell>
-                <TableCell>
-                  { canEdit() && (
-                    <IconButton 
-                      color="primary" 
-                      onClick={() => navigate(`/sucursales/editar/${branch.branch_id}`)}
-                    >
-                      <Edit />
-                    </IconButton>
-                  )}
-                  { canDelete() && (
-                    <IconButton 
-                      color="error" 
-                      onClick={() => handleDelete(branch.branch_id)}
-                    >
-                      <Delete />
-                    </IconButton>
-                  )}
+                <TableCell
+                  sx={{
+                    maxWidth: 150,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'normal',
+                    overflowWrap: 'break-word',
+                    wordBreak: 'break-word',
+                    px: 1,
+                  }}
+                >
+                  {branch.name}
                 </TableCell>
+                <TableCell
+                  sx={{
+                    maxWidth: 200,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'normal',
+                    overflowWrap: 'break-word',
+                    wordBreak: 'break-word',
+                    px: 1,
+                  }}
+                >
+                  {branch.address}
+                </TableCell>
+                <TableCell
+                  sx={{
+                    display: { xs: 'none', sm: 'table-cell' },
+                    whiteSpace: 'normal',
+                    px: 1,
+                  }}
+                >
+                  {branch.phone || '-'}
+                </TableCell>
+                <TableCell
+                  sx={{
+                    display: { xs: 'none', md: 'table-cell' },
+                    whiteSpace: 'normal',
+                    px: 1,
+                  }}
+                >
+                  {branch.opening_hours || '-'}
+                </TableCell>
+                {hasAnyActionPermission() && (
+                  <TableCell sx={{ px: 1 }}>
+                    <Stack direction="row" spacing={1}>
+                      {canEdit() && (
+                        <IconButton
+                          color="primary"
+                          onClick={() => navigate(`/sucursales/editar/${branch.branch_id}`)}
+                          size="small"
+                        >
+                          <Edit fontSize="small" />
+                        </IconButton>
+                      )}
+                      {canDelete() && (
+                        <IconButton
+                          color="error"
+                          onClick={() => handleDelete(branch.branch_id)}
+                          size="small"
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      )}
+                    </Stack>
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
@@ -141,7 +198,7 @@ const BranchesPage = () => {
         message={success}
       />
     </Container>
-  )
-}
+  );
+};
 
-export default BranchesPage
+export default BranchesPage;
