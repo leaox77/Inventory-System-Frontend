@@ -146,7 +146,7 @@ function NewSale() {
         client_id: formData.client_id || null,
         branch_id: formData.branch_id,
         payment_method_id: formData.payment_method_id,
-        discount: formData.discount,
+        discount: formData.discount.toString(),
         items: formData.items.map(item => ({
           product_id: item.product_id,
           quantity: item.quantity.toString(),
